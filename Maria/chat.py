@@ -3,9 +3,10 @@ import re
 import unicodedata
 import difflib
 import os
+import sqlite3
 
 _PASTA = os.path.dirname(os.path.abspath(__file__))
-ARQUIVO_BANCO = os.path.join(_PASTA, "info.txt")
+ARQUIVO_DB = os.path.join(_PASTA, "conhecimento.db")
 
 # Limiar do Jaccard (palavras em comum)
 LIMIAR_JACCARD = 0.40
@@ -69,7 +70,6 @@ def normalizar(texto):
     texto = remover_acentos(texto)
     texto = re.sub(r'[^\w\s]', '', texto)
 
-    # Juntadas e abreviações comuns em português (digitação rápida)
     juntadas = {
         "oque": "o que",
         "oq": "o que",
@@ -116,52 +116,36 @@ def normalizar(texto):
 # ==============================
 
 def montar_vocabulario():
-    """
-    Junta todas as palavras que existem nas perguntas do banco.
-    Isso vira o "dicionário" para corrigir erros de digitação.
-    """
     vocab = set()
     for pergunta in BASE.keys():
         for palavra in pergunta.split():
-            if len(palavra) >= 2:  # ignora letras soltas
+            if len(palavra) >= 2:
                 vocab.add(palavra)
     return vocab
 
 
 def corrigir_palavra(palavra, vocabulario):
-    """
-    Se a palavra não existe no vocabulário, tenta achar
-    a mais parecida (erro de digitação).
-    Usa difflib — compara letra a letra.
-    Só aceita candidato com tamanho parecido (evita mihora→mira).
-    """
     if palavra in vocabulario:
-        return palavra  # já está correta
+        return palavra
 
     if len(palavra) < 3:
-        return palavra  # palavras muito curtas não vale corrigir
+        return palavra
 
     candidatos = difflib.get_close_matches(
         palavra,
         vocabulario,
-        n=3,          # pega os 3 melhores e filtra
+        n=3,
         cutoff=0.75
     )
 
     for cand in candidatos:
-        # só aceita se o tamanho for parecido (diferença máxima de 2 letras)
         if abs(len(cand) - len(palavra)) <= 1:
             return cand
 
-    return palavra  # não achou parecida boa, deixa como está
+    return palavra
 
 
 def corrigir_digitacao(texto):
-    """
-    Camada 2: corrige cada palavra do texto
-    comparando com o vocabulário do banco.
-    Ex: "pyton" → "python", "valarant" → "valorant"
-    """
     vocabulario = montar_vocabulario()
     palavras = texto.split()
     corrigidas = [corrigir_palavra(p, vocabulario) for p in palavras]
@@ -173,7 +157,6 @@ def corrigir_digitacao(texto):
 # ==============================
 
 def jaccard(texto1, texto2):
-    """Similaridade por palavras em comum (0.0 a 1.0)."""
     p1 = set(texto1.split())
     p2 = set(texto2.split())
     if not p1 or not p2:
@@ -182,18 +165,10 @@ def jaccard(texto1, texto2):
 
 
 def similaridade_letras(texto1, texto2):
-    """
-    Similaridade letra a letra (difflib).
-    Bom para frases curtas e erros de digitação.
-    """
     return difflib.SequenceMatcher(None, texto1, texto2).ratio()
 
 
 def busca_por_similaridade(texto):
-    """
-    Camada 3: procura a pergunta mais parecida no banco.
-    Usa Jaccard E similaridade de letras, cada um com seu limiar.
-    """
     melhor_j = 0.0
     melhor_l = 0.0
     resp_j = None
@@ -211,7 +186,6 @@ def busca_por_similaridade(texto):
             melhor_l = score_l
             resp_l = random.choice(respostas)
 
-    # Cada score só vale se passar no SEU limiar
     if melhor_j >= LIMIAR_JACCARD:
         return resp_j
 
@@ -222,12 +196,6 @@ def busca_por_similaridade(texto):
 
 
 def interpretar(texto):
-    """
-    Pipeline completo do interpretador:
-    1) normaliza
-    2) corrige digitação
-    3) devolve o texto pronto para buscar
-    """
     texto = normalizar(texto)
     texto = corrigir_digitacao(texto)
     return texto
@@ -245,6 +213,7 @@ def saudacoes(nome):
     ]
     print(random.choice(frases))
 
+
 def saudacoes_GUI(nome):
     frases = [
         f"Bom dia! Meu nome é {nome}. Como vai você?",
@@ -252,6 +221,7 @@ def saudacoes_GUI(nome):
         f"Oi! Eu sou {nome}. Como posso ajudar?"
     ]
     return random.choice(frases)
+
 
 # ==============================
 # RECEBER TEXTO
@@ -269,28 +239,35 @@ def recebeTexto():
 
     return texto
 
+
 # ==============================
-# CARREGAR BASE
+# CARREGAR BASE (SQLite)
 # ==============================
 
 def carregar_base():
     base = {}
-    try:
-        with open(ARQUIVO_BANCO, "r", encoding="utf-8") as arquivo:
-            for linha in arquivo:
-                linha = linha.strip()
-                if ";" not in linha:
-                    continue
-                pergunta, resposta = linha.split(";", 1)
-                pergunta = normalizar(pergunta)
-                if pergunta not in base:
-                    base[pergunta] = []
-                base[pergunta].append(resposta)
-    except FileNotFoundError:
-        open(ARQUIVO_BANCO, "w", encoding="utf-8").close()
+
+    if not os.path.exists(ARQUIVO_DB):
+        print("ERRO: conhecimento.db não encontrado.")
+        print("Rode antes: criar_banco.py e importar_info.py")
+        return base
+
+    conexao = sqlite3.connect(ARQUIVO_DB)
+    cursor = conexao.cursor()
+    cursor.execute("SELECT pergunta, resposta FROM conhecimento")
+
+    for pergunta, resposta in cursor.fetchall():
+        if pergunta not in base:
+            base[pergunta] = []
+        base[pergunta].append(resposta)
+
+    conexao.close()
+    print(f"[Dona Maria] Base SQLite: {len(base)} perguntas")
     return base
 
+
 BASE = carregar_base()
+
 
 # ==============================
 # BUSCAR RESPOSTA
@@ -299,22 +276,18 @@ BASE = carregar_base()
 def buscaResposta(texto):
     global BASE
 
-    # Roda o interpretador (normaliza + corrige digitação)
     pergunta = interpretar(texto)
 
     if pergunta in ["tchau", "adeus", "ate logo"]:
         return "fim"
 
-    # 1) Match exato (depois da correção)
     if pergunta in BASE:
         return random.choice(BASE[pergunta])
 
-    # 2) Match por similaridade
     resposta = busca_por_similaridade(pergunta)
     if resposta is not None:
         return resposta
 
-    # 3) Não sabe → aprende
     print("Maria: Não sei responder isso.")
     resposta = input("Qual deveria ser a resposta? ")
     salva_sugestao(texto, resposta)
@@ -331,18 +304,31 @@ def buscaResposta_GUI(texto):
 
     return busca_por_similaridade(pergunta)
 
+
 # ==============================
-# SALVAR / EXIBIR
+# SALVAR / EXIBIR (SQLite)
 # ==============================
 
 def salva_sugestao(pergunta, resposta):
     global BASE
     pergunta = normalizar(pergunta)
-    with open(ARQUIVO_BANCO, "a", encoding="utf-8") as arquivo:
-        arquivo.write(f"\n{pergunta};{resposta}")
+    resposta = resposta.strip()
+
     if pergunta not in BASE:
         BASE[pergunta] = []
     BASE[pergunta].append(resposta)
+
+    conexao = sqlite3.connect(ARQUIVO_DB)
+    cursor = conexao.cursor()
+    cursor.execute(
+        """
+        INSERT INTO conhecimento (pergunta, resposta)
+        VALUES (?, ?)
+        """,
+        (pergunta, resposta),
+    )
+    conexao.commit()
+    conexao.close()
 
 
 def exibeResposta(resposta, nome):
