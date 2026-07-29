@@ -1,0 +1,186 @@
+oi;Olá! Como posso ajudar?
+olá;Olá! Como posso ajudar?
+ola;Olá! Como posso ajudar?
+oii;Olá! Como posso ajudar?
+e aí;Oi! Tudo bem?
+e ai;Oi! Tudo bem?
+bom dia;Bom dia! Espero que seu dia seja excelente.
+boa tarde;Boa tarde! Como posso ajudar?
+boa noite;Boa noite! Em que posso ajudar?
+tudo bem;Estou muito bem, obrigado por perguntar.
+como vai;Estou indo muito bem.
+como você está;Estou funcionando perfeitamente.
+como voce está;Estou funcionando perfeitamente.
+como voce esta;Estou funcionando perfeitamente.
+como você esta;Estou funcionando perfeitamente.
+quem é você;Sou um chatbot desenvolvido em Python.
+quem e voce;Sou um chatbot desenvolvido em Python.
+qual seu nome;Meu nome é Maria.
+quem criou você;Fui criado por um estudante de programação.
+quem criou voce;Fui criado por um estudante de programação.
+o que você faz;Converso e respondo perguntas.
+o que voce faz;Converso e respondo perguntas.
+você aprende;Sim, minha base de conhecimento pode crescer.
+voce aprende;Sim, minha base de conhecimento pode crescer.
+você é inteligente;Faço o melhor para responder corretamente.
+voce é inteligente;Faço o melhor para responder corretamente.
+você é humano;Não, sou um programa.
+voce é humano;Não, sou um programa.
+você sente emoções;Não, mas consigo compreender mensagens.
+voce sente emoções;Não, mas consigo compreender mensagens.
+qual sua idade;Programas não possuem idade.
+você gosta de conversar;Sim, conversar faz parte da minha função.
+voce gosta de conversar;Sim, conversar faz parte da minha função.
+obrigado;De nada!
+muito obrigado;Foi um prazer ajudar.
+valeu;Disponha!
+por favor;Claro!
+desculpe;Tudo bem, acontece.
+até logo;Até a próxima.
+ate logo;Até a próxima.
+adeus;Até mais!
+tchau;Volte sempre!
+
+o que é programação;Programação é criar instruções para um computador executar.
+o que e programação;Programação é criar instruções para um computador executar.
+o que e programacao;Programação é criar instruções para um computador executar.
+o que é algoritmo;Um algoritmo é uma sequência de passos para resolver um problema.
+o que e algoritmo;Um algoritmo é uma sequência de passos para resolver um problema.
+o que é python;Python é uma linguagem de programação simples e poderosa.
+o que e python;Python é uma linguagem de programação simples e poderosa.
+o que é java;Java é uma linguagem orientada a objetos muito utilizada.
+o que e java;Java é uma linguagem orientada a objetos muito utilizada.
+o que é c;C é uma linguagem de programação muito utilizada no ensino.
+o que e c;C é uma linguagem de programação muito utilizada no ensino.
+o que é html;HTML é a linguagem usada para estruturar páginas web.
+o que e html;HTML é a linguagem usada para estruturar páginas web.
+o que é css;CSS é utilizado para estilizar páginas HTML.
+o que e css;CSS é utilizado para estilizar páginas HTML.
+o que é javascript;JavaScript adiciona interatividade às páginas web.
+o que e javascript;JavaScript adiciona interatividade às páginas web.
+o que é github;GitHub é uma plataforma para hospedar projetos com Git.
+o que e github;GitHub é uma plataforma para hospedar projetos com Git.
+o que é git;Git é um sistema de controle de versões.
+o que e git;Git é um sistema de controle de versões.
+como aprender programação;Pratique bastante e desenvolva pequenos projetos.
+como aprender programacao;Pratique bastante e desenvolva pequenos projetos.
+qual a melhor linguagem;Depende do objetivo do projeto.
+o que é variável;É um espaço na memória para armazenar dados.
+o que e variavel;É um espaço na memória para armazenar dados.
+o que é função;É um bloco de código reutilizável.
+o que e funcao;É um bloco de código reutilizável.
+o que é laço de repetição;É uma estrutura que executa comandos várias vezes.
+o que e laco de repeticao;É uma estrutura que executa comandos várias vezes.
+o que é if;É uma estrutura de decisão.
+o que e if;É uma estrutura de decisão.
+o que é lista;É uma coleção de elementos.
+o que e lista;É uma coleção de elementos.
+o que é dicionário;É uma estrutura que armazena pares chave e valor.
+o que e dicionario;É uma estrutura que armazena pares chave e valor.
+o que é orientação a objetos;É um paradigma baseado em objetos e classes.
+o que e orientacao a objetos;É um paradigma baseado em objetos e classes.
+
+o que é valorant;Valorant é um FPS tático da Riot Games.
+quem criou valorant;Valorant foi desenvolvido pela Riot Games.
+quando valorant foi lançado;Valorant foi lançado em 2020.
+quantos jogadores tem um time;Cada equipe possui cinco jogadores.
+o que é spike;É o objetivo principal do modo competitivo.
+o que é eco;É uma rodada para economizar dinheiro.
+o que é force buy;É comprar mesmo sem economia ideal.
+o que é full buy;É comprar todos os equipamentos necessários.
+o que é pistol;É a primeira rodada da partida.
+o que é vandal;A Vandal elimina com um tiro na cabeça em qualquer distância.
+o que é phantom;A Phantom possui silenciador e menos recuo.
+o que é operator;A Operator é o rifle de precisão mais poderoso.
+o que é sheriff;A Sheriff é uma pistola de alto dano.
+o que é spectre;É uma submetralhadora muito usada em rodadas econômicas.
+qual a melhor arma;Depende do mapa e do estilo de jogo.
+vandal ou phantom;Vandal é melhor para longa distância, Phantom para curta.
+o que é hs;HS significa Headshot.
+o que é aim;Aim é a habilidade de mirar.
+o que é crosshair;É a mira exibida na tela.
+o que é crosshair placement;É manter a mira na altura da cabeça.
+como melhorar a mira;Treine regularmente e mantenha boa sensibilidade.
+como subir de elo;Treine fundamentos, comunicação e posicionamento.
+como sair do ferro;Aprenda economia, posicionamento e mira.
+como sair do bronze;Evite erros básicos e jogue em equipe.
+o que é clutch;É vencer uma rodada em desvantagem numérica.
+o que é ace;É eliminar os cinco adversários.
+o que significa gg;GG significa Good Game.
+o que significa nt;NT significa Nice Try.
+o que significa glhf;GLHF significa Good Luck Have Fun.
+como jogar de jett;Use sua mobilidade para abrir espaço.
+como jogar de sage;Priorize curar aliados e controlar áreas.
+como jogar de omen;Utilize fumaças para bloquear visão.
+como jogar de sova;Use flechas para obter informações.
+como jogar de killjoy;Proteja os bombsites com seus equipamentos.
+qual agente escolher;Depende do seu estilo de jogo.
+quem é jett;Jett é uma duelista muito móvel.
+quem é reyna;Reyna é uma duelista focada em eliminações.
+quem é sage;Sage é uma sentinela que pode curar aliados.
+quem é omen;Omen é um controlador especializado em fumaças.
+quem é sova;Sova é um iniciador que revela inimigos.
+
+fale sobre ascent;Ascent é um mapa equilibrado onde controlar o meio é muito importante.
+fale sobre bind;Bind possui teleportadores e não possui região central.
+fale sobre haven;Haven possui três bombsites.
+fale sobre split;Split favorece bastante a defesa.
+fale sobre lotus;Lotus possui portas giratórias e três bombsites.
+fale sobre icebox;Icebox possui muita verticalidade.
+fale sobre breeze;Breeze favorece armas de longa distância.
+qual mapa favorece operator;Breeze e Pearl são excelentes para Operator.
+qual mapa favorece phantom;Split e Bind favorecem a Phantom.
+
+o que é matemática;É a ciência que estuda números e padrões.
+quanto é dois mais dois;Dois mais dois é quatro.
+quanto é cinco vezes cinco;Cinco vezes cinco é vinte e cinco.
+quanto é dez dividido por dois;Dez dividido por dois é cinco.
+o que é química;É a ciência que estuda a matéria.
+o que é física;É a ciência que estuda os fenômenos da natureza.
+o que é biologia;É a ciência que estuda os seres vivos.
+qual a capital do brasil;A capital do Brasil é Brasília.
+quem descobriu o brasil;Tradicionalmente considera-se Pedro Álvares Cabral.
+qual o maior planeta;Júpiter é o maior planeta do Sistema Solar.
+qual o menor planeta;Mercúrio é o menor planeta do Sistema Solar.
+quantos planetas existem;O Sistema Solar possui oito planetas.
+
+o que é inteligência artificial;É a área da computação que desenvolve sistemas inteligentes.
+o que é robótica;É a área que integra programação, eletrônica e mecânica.
+o que é computador;É uma máquina que processa informações.
+o que é internet;É uma rede mundial de computadores.
+o que é wifi;É uma tecnologia de comunicação sem fio.
+o que é banco de dados;É um sistema para armazenar informações.
+o que é chatbot;É um programa capaz de conversar com usuários.
+
+estou feliz;Que bom! Fico feliz por você.
+estou triste;Espero que as coisas melhorem em breve.
+estou cansado;Talvez seja uma boa ideia descansar um pouco.
+estou com sono;Dormir bem é importante para a saúde.
+estou com fome;Que tal fazer um lanche?
+estou nervoso;Respire fundo e tente manter a calma.
+estou ansioso;Organizar suas tarefas pode ajudar.
+estou entediado;Que tal aprender algo novo?
+conte uma piada;Por que o computador foi ao médico? Porque estava com um vírus.
+conte uma curiosidade;O primeiro computador ocupava uma sala inteira.
+qual sua cor favorita;Não tenho preferências pessoais.
+qual seu filme favorito;Não assisto filmes, mas posso conversar sobre eles.
+qual seu jogo favorito;Conheço bastante sobre Valorant.
+você gosta de música;Posso conversar sobre música, mesmo sem ouvir.
+o que você sabe;Conheço programação, Valorant, educação e assuntos gerais.
+você pode me ajudar;Claro! Pergunte o que desejar.
+quem é o melhor jogador de valorant;Existem muitos excelentes jogadores profissionais, depende do critério utilizado.
+qual o melhor computador;Depende do uso e do orçamento.
+como montar um computador;Escolha processador, placa-mãe, memória, armazenamento, fonte e gabinete compatíveis.
+o que é memória ram;É a memória usada para armazenar dados temporariamente.
+o que é ssd;SSD é um dispositivo de armazenamento rápido.
+o que é hd;HD é um dispositivo de armazenamento magnético.
+o que é processador;É o componente responsável pelos cálculos do computador.
+o que é placa de vídeo;É o componente responsável pelo processamento gráfico.
+o que é fps;FPS significa quadros por segundo.
+monitor 144hz faz diferença;Sim, proporciona maior fluidez em jogos.
+qual dpi usar;Muitos jogadores utilizam entre 400 e 800 DPI.
+como melhorar meu fps;Reduza configurações gráficas e mantenha os drivers atualizados.
+qual sistema operacional você recomenda;Windows e Linux são excelentes, dependendo da necessidade.
+você conhece linux;Sim, Linux é um sistema operacional de código aberto.
+você conhece windows;Sim, Windows é um dos sistemas operacionais mais utilizados.
+estou bem;que bom, como posso ajudar

@@ -1,0 +1,3 @@
+Migrar para SQLite + manter o interpretador atual
+Adicionar memória simples (últimas 5–10 falas)
+Deixar a integração com IA externa para um segundo momento
