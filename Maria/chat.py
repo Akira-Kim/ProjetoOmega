@@ -180,11 +180,11 @@ def busca_por_similaridade(texto):
 
         if score_j > melhor_j:
             melhor_j = score_j
-            resp_j = random.choice(respostas)
+            resp_j = resp_j = escolher_resposta(respostas)
 
         if score_l > melhor_l:
             melhor_l = score_l
-            resp_l = random.choice(respostas)
+            resp_l = escolher_resposta(respostas)
 
     if melhor_j >= LIMIAR_JACCARD:
         return resp_j
@@ -254,9 +254,16 @@ def carregar_base():
 
     conexao = sqlite3.connect(ARQUIVO_DB)
     cursor = conexao.cursor()
-    cursor.execute("SELECT pergunta, resposta FROM conhecimento")
+    # Mais usadas primeiro
+    cursor.execute(
+        """
+        SELECT pergunta, resposta, vezes_usada
+        FROM conhecimento
+        ORDER BY vezes_usada DESC
+        """
+    )
 
-    for pergunta, resposta in cursor.fetchall():
+    for pergunta, resposta, _vezes in cursor.fetchall():
         if pergunta not in base:
             base[pergunta] = []
         base[pergunta].append(resposta)
@@ -282,10 +289,13 @@ def buscaResposta(texto):
         return "fim"
 
     if pergunta in BASE:
-        return random.choice(BASE[pergunta])
+        resposta = escolher_resposta(BASE[pergunta])
+        registrar_uso(pergunta, resposta)
+        return resposta
 
     resposta = busca_por_similaridade(pergunta)
     if resposta is not None:
+        # tenta achar a pergunta “vencedora” para registrar (opcional/simples: só registra se match exato)
         return resposta
 
     print("Maria: Não sei responder isso.")
@@ -300,7 +310,9 @@ def buscaResposta_GUI(texto):
     pergunta = interpretar(texto)
 
     if pergunta in BASE:
-        return random.choice(BASE[pergunta])
+        resposta = escolher_resposta(BASE[pergunta])
+        registrar_uso(pergunta, resposta)
+        return resposta
 
     return busca_por_similaridade(pergunta)
 
@@ -343,3 +355,30 @@ def exibeResposta_GUI(resposta, nome):
     if resposta == "fim":
         return f"{nome}: Volte sempre!"
     return f"{nome}: {resposta}"
+
+def registrar_uso(pergunta, resposta):
+    """Soma +1 em vezes_usada no SQLite."""
+    conexao = sqlite3.connect(ARQUIVO_DB)
+    cursor = conexao.cursor()
+    cursor.execute(
+        """
+        UPDATE conhecimento
+        SET vezes_usada = vezes_usada + 1
+        WHERE pergunta = ? AND resposta = ?
+        """,
+        (pergunta, resposta),
+    )
+    conexao.commit()
+    conexao.close()
+
+def escolher_resposta(respostas):
+    """
+    Se houver várias respostas, prefere a primeira da lista
+    (que veio ordenada por vezes_usada DESC).
+    Com 30% de chance escolhe outra, para não ficar repetitivo.
+    """
+    if not respostas:
+        return None
+    if len(respostas) == 1 or random.random() < 0.70:
+        return respostas[0]
+    return random.choice(respostas)
