@@ -8,10 +8,7 @@ import sqlite3
 _PASTA = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_DB = os.path.join(_PASTA, "conhecimento.db")
 
-# Limiar do Jaccard (palavras em comum)
 LIMIAR_JACCARD = 0.40
-
-# Limiar do difflib (parecido letra a letra) — 0.0 a 1.0
 LIMIAR_DIGITACAO = 0.72
 
 # ==============================
@@ -59,13 +56,6 @@ def remover_acentos(texto):
 
 
 def normalizar(texto):
-    """
-    Camada 1: limpa o texto.
-    - minúsculas
-    - sem acento
-    - sem pontuação
-    - separa juntadas comuns (oque → o que)
-    """
     texto = texto.lower().strip()
     texto = remover_acentos(texto)
     texto = re.sub(r'[^\w\s]', '', texto)
@@ -105,10 +95,7 @@ def normalizar(texto):
     }
 
     palavras = texto.split()
-    novas = []
-    for p in palavras:
-        novas.append(juntadas.get(p, p))
-    return " ".join(novas)
+    return " ".join(juntadas.get(p, p) for p in palavras)
 
 
 # ==============================
@@ -127,29 +114,21 @@ def montar_vocabulario():
 def corrigir_palavra(palavra, vocabulario):
     if palavra in vocabulario:
         return palavra
-
     if len(palavra) < 3:
         return palavra
 
     candidatos = difflib.get_close_matches(
-        palavra,
-        vocabulario,
-        n=3,
-        cutoff=0.75
+        palavra, vocabulario, n=3, cutoff=0.75
     )
-
     for cand in candidatos:
         if abs(len(cand) - len(palavra)) <= 1:
             return cand
-
     return palavra
 
 
 def corrigir_digitacao(texto):
     vocabulario = montar_vocabulario()
-    palavras = texto.split()
-    corrigidas = [corrigir_palavra(p, vocabulario) for p in palavras]
-    return " ".join(corrigidas)
+    return " ".join(corrigir_palavra(p, vocabulario) for p in texto.split())
 
 
 # ==============================
@@ -168,9 +147,27 @@ def similaridade_letras(texto1, texto2):
     return difflib.SequenceMatcher(None, texto1, texto2).ratio()
 
 
+def escolher_resposta(respostas):
+    """
+    Prefere a primeira (lista já vem ordenada por vezes_usada DESC).
+    30% de chance de escolher outra, para variar.
+    """
+    if not respostas:
+        return None
+    if len(respostas) == 1 or random.random() < 0.70:
+        return respostas[0]
+    return random.choice(respostas)
+
+
 def busca_por_similaridade(texto):
+    """
+    Procura a pergunta mais parecida.
+    Se achar, REGISTRA O USO da pergunta+resposta vencedoras.
+    """
     melhor_j = 0.0
     melhor_l = 0.0
+    pergunta_j = None
+    pergunta_l = None
     resp_j = None
     resp_l = None
 
@@ -180,25 +177,28 @@ def busca_por_similaridade(texto):
 
         if score_j > melhor_j:
             melhor_j = score_j
-            resp_j = resp_j = escolher_resposta(respostas)
+            pergunta_j = pergunta_base
+            resp_j = escolher_resposta(respostas)
 
         if score_l > melhor_l:
             melhor_l = score_l
+            pergunta_l = pergunta_base
             resp_l = escolher_resposta(respostas)
 
-    if melhor_j >= LIMIAR_JACCARD:
+    # Jaccard tem prioridade se passar no limiar
+    if melhor_j >= LIMIAR_JACCARD and resp_j is not None:
+        registrar_uso(pergunta_j, resp_j)
         return resp_j
 
-    if melhor_l >= LIMIAR_DIGITACAO:
+    if melhor_l >= LIMIAR_DIGITACAO and resp_l is not None:
+        registrar_uso(pergunta_l, resp_l)
         return resp_l
 
     return None
 
 
 def interpretar(texto):
-    texto = normalizar(texto)
-    texto = corrigir_digitacao(texto)
-    return texto
+    return corrigir_digitacao(normalizar(texto))
 
 
 # ==============================
@@ -254,7 +254,6 @@ def carregar_base():
 
     conexao = sqlite3.connect(ARQUIVO_DB)
     cursor = conexao.cursor()
-    # Mais usadas primeiro
     cursor.execute(
         """
         SELECT pergunta, resposta, vezes_usada
@@ -277,49 +276,29 @@ BASE = carregar_base()
 
 
 # ==============================
-# BUSCAR RESPOSTA
+# REGISTRAR USO + SALVAR
 # ==============================
 
-def buscaResposta(texto):
-    global BASE
+def registrar_uso(pergunta, resposta):
+    """Soma +1 em vezes_usada (match exato ou similaridade)."""
+    if not pergunta or not resposta:
+        return
+    try:
+        conexao = sqlite3.connect(ARQUIVO_DB)
+        cursor = conexao.cursor()
+        cursor.execute(
+            """
+            UPDATE conhecimento
+            SET vezes_usada = vezes_usada + 1
+            WHERE pergunta = ? AND resposta = ?
+            """,
+            (pergunta, resposta),
+        )
+        conexao.commit()
+        conexao.close()
+    except Exception:
+        pass  # não quebra o chat se o UPDATE falhar
 
-    pergunta = interpretar(texto)
-
-    if pergunta in ["tchau", "adeus", "ate logo"]:
-        return "fim"
-
-    if pergunta in BASE:
-        resposta = escolher_resposta(BASE[pergunta])
-        registrar_uso(pergunta, resposta)
-        return resposta
-
-    resposta = busca_por_similaridade(pergunta)
-    if resposta is not None:
-        # tenta achar a pergunta “vencedora” para registrar (opcional/simples: só registra se match exato)
-        return resposta
-
-    print("Maria: Não sei responder isso.")
-    resposta = input("Qual deveria ser a resposta? ")
-    salva_sugestao(texto, resposta)
-    return "Obrigado! Aprendi uma nova resposta."
-
-
-def buscaResposta_GUI(texto):
-    global BASE
-
-    pergunta = interpretar(texto)
-
-    if pergunta in BASE:
-        resposta = escolher_resposta(BASE[pergunta])
-        registrar_uso(pergunta, resposta)
-        return resposta
-
-    return busca_por_similaridade(pergunta)
-
-
-# ==============================
-# SALVAR / EXIBIR (SQLite)
-# ==============================
 
 def salva_sugestao(pergunta, resposta):
     global BASE
@@ -334,13 +313,58 @@ def salva_sugestao(pergunta, resposta):
     cursor = conexao.cursor()
     cursor.execute(
         """
-        INSERT INTO conhecimento (pergunta, resposta)
-        VALUES (?, ?)
+        INSERT INTO conhecimento (pergunta, resposta, vezes_usada)
+        VALUES (?, ?, 0)
         """,
         (pergunta, resposta),
     )
     conexao.commit()
     conexao.close()
+
+
+# ==============================
+# BUSCAR RESPOSTA
+# ==============================
+
+def buscaResposta(texto):
+    global BASE
+
+    pergunta = interpretar(texto)
+
+    if pergunta in ["tchau", "adeus", "ate logo"]:
+        return "fim"
+
+    # 1) Match exato → registra uso
+    if pergunta in BASE:
+        resposta = escolher_resposta(BASE[pergunta])
+        registrar_uso(pergunta, resposta)
+        return resposta
+
+    # 2) Similaridade → registra uso dentro de busca_por_similaridade
+    resposta = busca_por_similaridade(pergunta)
+    if resposta is not None:
+        return resposta
+
+    # 3) Não sabe → aprende
+    print("Maria: Não sei responder isso.")
+    resposta = input("Qual deveria ser a resposta? ")
+    salva_sugestao(texto, resposta)
+    return "Obrigado! Aprendi uma nova resposta."
+
+
+def buscaResposta_GUI(texto):
+    global BASE
+
+    pergunta = interpretar(texto)
+
+    # 1) Match exato → registra uso
+    if pergunta in BASE:
+        resposta = escolher_resposta(BASE[pergunta])
+        registrar_uso(pergunta, resposta)
+        return resposta
+
+    # 2) Similaridade → registra uso dentro de busca_por_similaridade
+    return busca_por_similaridade(pergunta)
 
 
 def exibeResposta(resposta, nome):
@@ -355,30 +379,3 @@ def exibeResposta_GUI(resposta, nome):
     if resposta == "fim":
         return f"{nome}: Volte sempre!"
     return f"{nome}: {resposta}"
-
-def registrar_uso(pergunta, resposta):
-    """Soma +1 em vezes_usada no SQLite."""
-    conexao = sqlite3.connect(ARQUIVO_DB)
-    cursor = conexao.cursor()
-    cursor.execute(
-        """
-        UPDATE conhecimento
-        SET vezes_usada = vezes_usada + 1
-        WHERE pergunta = ? AND resposta = ?
-        """,
-        (pergunta, resposta),
-    )
-    conexao.commit()
-    conexao.close()
-
-def escolher_resposta(respostas):
-    """
-    Se houver várias respostas, prefere a primeira da lista
-    (que veio ordenada por vezes_usada DESC).
-    Com 30% de chance escolhe outra, para não ficar repetitivo.
-    """
-    if not respostas:
-        return None
-    if len(respostas) == 1 or random.random() < 0.70:
-        return respostas[0]
-    return random.choice(respostas)
