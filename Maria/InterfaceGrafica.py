@@ -100,6 +100,7 @@ def enviar(event=None):
     # Verificar despedida
     pergunta = pc.normalizar(texto)
     if pergunta in ["tchau", "adeus", "até logo", "ate logo"]:
+        pc.limpar_contexto()
         escrever(nome_maquina + ": Volte sempre!")
         return
 

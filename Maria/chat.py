@@ -12,6 +12,118 @@ LIMIAR_JACCARD = 0.40
 LIMIAR_DIGITACAO = 0.72
 
 # ==============================
+# MEMÓRIA DE CONTEXTO
+# ==============================
+
+MAX_HISTORICO = 8
+historico_conversa = []   # [{"usuario", "maria", "chave"}]
+ultimo_tema = None        # ex: "python", "valorant"
+_ultima_chave_match = None
+
+STOPWORDS = {
+    "o", "a", "os", "as", "um", "uma", "de", "do", "da", "dos", "das",
+    "e", "ou", "que", "em", "no", "na", "nos", "nas", "para", "por",
+    "com", "sem", "como", "qual", "quais", "meu", "minha", "seu", "sua",
+    "me", "te", "se", "eu", "voce", "ele", "ela", "isso", "isto",
+    "sobre", "fale", "explica", "dizer", "diz", "ai", "eh",
+}
+
+
+def extrair_tema(texto):
+    """Pega a palavra mais 'substantiva' (em geral o assunto no final)."""
+    if not texto:
+        return None
+    palavras = [
+        p for p in normalizar(texto).split()
+        if p not in STOPWORDS and len(p) >= 1
+    ]
+    if not palavras:
+        return None
+    return palavras[-1]
+
+
+def atualizar_contexto(texto_usuario, chave_base, resposta):
+    """Atualiza histórico e o último tema da conversa."""
+    global historico_conversa, ultimo_tema
+
+    tema = extrair_tema(chave_base) or extrair_tema(texto_usuario)
+    if tema:
+        ultimo_tema = tema
+
+    historico_conversa.append({
+        "usuario": texto_usuario,
+        "maria": resposta,
+        "chave": chave_base,
+        "tema": tema,
+    })
+    if len(historico_conversa) > MAX_HISTORICO:
+        historico_conversa.pop(0)
+
+
+def limpar_contexto():
+    """Zera a memória (ex.: ao dizer tchau)."""
+    global historico_conversa, ultimo_tema, _ultima_chave_match
+    historico_conversa = []
+    ultimo_tema = None
+    _ultima_chave_match = None
+
+
+def tentar_expandir_contexto(pergunta_norm):
+    """
+    Se a frase parecer continuação ("e o de c?", "e java?"),
+    monta uma pergunta completa usando o último tema.
+    """
+    if not pergunta_norm:
+        return pergunta_norm
+
+    # Já é uma pergunta completa o suficiente → não mexe
+    if len(pergunta_norm.split()) >= 4 and not pergunta_norm.startswith("e "):
+        return pergunta_norm
+
+    # "e o de c" / "e a de java" / "e o c"
+    m = re.match(r"^e (?:o|a) (?:de )?(.+)$", pergunta_norm)
+    if m:
+        resto = m.group(1).strip()
+        if resto:
+            return f"o que e {resto}"
+
+    # "e sobre valorant" / "e de python"
+    m = re.match(r"^e (?:sobre|do|da|de) (.+)$", pergunta_norm)
+    if m:
+        resto = m.group(1).strip()
+        if resto:
+            return f"o que e {resto}"
+
+    # "e java" / "e html" (curto)
+    m = re.match(r"^e (.+)$", pergunta_norm)
+    if m and len(pergunta_norm.split()) <= 3:
+        resto = m.group(1).strip()
+        if resto and resto not in STOPWORDS:
+            return f"o que e {resto}"
+
+    # "me fala mais" / "e mais" / "continua" → tenta "o que e {tema}"
+    if pergunta_norm in ("me fala mais", "fale mais", "e mais", "continua", "mais"):
+        if ultimo_tema:
+            return f"o que e {ultimo_tema}"
+
+    return pergunta_norm
+
+
+def preparar_pergunta(texto):
+    """
+    Pipeline:
+    1) interpretar (normalizar + digitação)
+    2) expandir com contexto da conversa
+    3) interpretar de novo (se expandiu)
+    """
+    pergunta = interpretar(texto)
+    expandida = tentar_expandir_contexto(pergunta)
+    if expandida != pergunta:
+        pergunta = interpretar(expandida)
+    return pergunta
+
+
+# ==============================
 # PALAVRAS PROIBIDAS
 # ==============================
 
@@ -148,10 +260,6 @@ def similaridade_letras(texto1, texto2):
 
 
 def escolher_resposta(respostas):
-    """
-    Prefere a primeira (lista já vem ordenada por vezes_usada DESC).
-    30% de chance de escolher outra, para variar.
-    """
     if not respostas:
         return None
     if len(respostas) == 1 or random.random() < 0.70:
@@ -160,10 +268,9 @@ def escolher_resposta(respostas):
 
 
 def busca_por_similaridade(texto):
-    """
-    Procura a pergunta mais parecida.
-    Se achar, REGISTRA O USO da pergunta+resposta vencedoras.
-    """
+    """Procura pergunta parecida e registra uso da chave vencedora."""
+    global _ultima_chave_match
+
     melhor_j = 0.0
     melhor_l = 0.0
     pergunta_j = None
@@ -185,12 +292,13 @@ def busca_por_similaridade(texto):
             pergunta_l = pergunta_base
             resp_l = escolher_resposta(respostas)
 
-    # Jaccard tem prioridade se passar no limiar
     if melhor_j >= LIMIAR_JACCARD and resp_j is not None:
+        _ultima_chave_match = pergunta_j
         registrar_uso(pergunta_j, resp_j)
         return resp_j
 
     if melhor_l >= LIMIAR_DIGITACAO and resp_l is not None:
+        _ultima_chave_match = pergunta_l
         registrar_uso(pergunta_l, resp_l)
         return resp_l
 
@@ -280,7 +388,6 @@ BASE = carregar_base()
 # ==============================
 
 def registrar_uso(pergunta, resposta):
-    """Soma +1 em vezes_usada (match exato ou similaridade)."""
     if not pergunta or not resposta:
         return
     try:
@@ -297,7 +404,7 @@ def registrar_uso(pergunta, resposta):
         conexao.commit()
         conexao.close()
     except Exception:
-        pass  # não quebra o chat se o UPDATE falhar
+        pass
 
 
 def salva_sugestao(pergunta, resposta):
@@ -323,48 +430,58 @@ def salva_sugestao(pergunta, resposta):
 
 
 # ==============================
-# BUSCAR RESPOSTA
+# BUSCAR RESPOSTA (com contexto)
 # ==============================
 
 def buscaResposta(texto):
-    global BASE
+    global BASE, _ultima_chave_match
 
-    pergunta = interpretar(texto)
+    _ultima_chave_match = None
+    pergunta = preparar_pergunta(texto)
 
     if pergunta in ["tchau", "adeus", "ate logo"]:
+        limpar_contexto()
         return "fim"
 
-    # 1) Match exato → registra uso
+    # 1) Match exato
     if pergunta in BASE:
         resposta = escolher_resposta(BASE[pergunta])
         registrar_uso(pergunta, resposta)
+        atualizar_contexto(texto, pergunta, resposta)
         return resposta
 
-    # 2) Similaridade → registra uso dentro de busca_por_similaridade
+    # 2) Similaridade
     resposta = busca_por_similaridade(pergunta)
     if resposta is not None:
+        atualizar_contexto(texto, _ultima_chave_match, resposta)
         return resposta
 
     # 3) Não sabe → aprende
     print("Maria: Não sei responder isso.")
     resposta = input("Qual deveria ser a resposta? ")
     salva_sugestao(texto, resposta)
+    atualizar_contexto(texto, normalizar(texto), resposta)
     return "Obrigado! Aprendi uma nova resposta."
 
 
 def buscaResposta_GUI(texto):
-    global BASE
+    global BASE, _ultima_chave_match
 
-    pergunta = interpretar(texto)
+    _ultima_chave_match = None
+    pergunta = preparar_pergunta(texto)
 
-    # 1) Match exato → registra uso
+    # 1) Match exato
     if pergunta in BASE:
         resposta = escolher_resposta(BASE[pergunta])
         registrar_uso(pergunta, resposta)
+        atualizar_contexto(texto, pergunta, resposta)
         return resposta
 
-    # 2) Similaridade → registra uso dentro de busca_por_similaridade
-    return busca_por_similaridade(pergunta)
+    # 2) Similaridade
+    resposta = busca_por_similaridade(pergunta)
+    if resposta is not None:
+        atualizar_contexto(texto, _ultima_chave_match, resposta)
+    return resposta
 
 
 def exibeResposta(resposta, nome):

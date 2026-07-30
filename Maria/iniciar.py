@@ -18,7 +18,7 @@ sys.path.insert(0, PASTA)
 
 
 def verificar_arquivos(modo):
-    obrigatorios = ["chat.py", "info.txt"]
+    obrigatorios = ["chat.py", "conhecimento.db"]
     if modo == "gui":
         obrigatorios.append("InterfaceGrafica.py")
     else:

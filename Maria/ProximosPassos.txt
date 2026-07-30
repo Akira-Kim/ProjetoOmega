@@ -1,3 +1,1 @@
-Migrar para SQLite + manter o interpretador atual
-Adicionar memória simples (últimas 5–10 falas)
-Deixar a integração com IA externa para um segundo momento
+1Memória de contextoEntende “e o de C?” depois de falar de Python2Fallback de IAQuando a base não sabe, consulta um modelo e pode aprender a resposta3Recarregar base sem reiniciarDepois de aprender, a GUI enxerga na hora (hoje já grava no SQLite + memória)4Painel simplesVer top perguntas, total no banco, exportar5Melhorar a GUIHistórico colorido, botão limpar, status “base: 147 perguntas”
