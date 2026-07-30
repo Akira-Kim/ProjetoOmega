@@ -5,11 +5,19 @@ import difflib
 import os
 import sqlite3
 
+try:
+    import fallback_ia
+except ImportError:
+    fallback_ia = None
+
 _PASTA = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_DB = os.path.join(_PASTA, "conhecimento.db")
 
-LIMIAR_JACCARD = 0.40
+LIMIAR_JACCARD = 0.45
 LIMIAR_DIGITACAO = 0.72
+
+# Se a IA responder, grava na base local automaticamente?
+AUTO_APRENDER_IA = True
 
 # ==============================
 # MEMÓRIA DE CONTEXTO
@@ -23,7 +31,9 @@ _ultima_chave_match = None
 STOPWORDS = {
     "o", "a", "os", "as", "um", "uma", "de", "do", "da", "dos", "das",
     "e", "ou", "que", "em", "no", "na", "nos", "nas", "para", "por",
-    "com", "sem", "como", "qual", "quais", "meu", "minha", "seu", "sua",
+    "com", "sem", "como", "qual", "quais", "quem", "onde", "quando",
+    "quanto", "quantos", "quantas", "porque", "porquê",
+    "meu", "minha", "seu", "sua",
     "me", "te", "se", "eu", "voce", "ele", "ela", "isso", "isto",
     "sobre", "fale", "explica", "dizer", "diz", "ai", "eh",
 }
@@ -79,6 +89,13 @@ def tentar_expandir_contexto(pergunta_norm):
     # Já é uma pergunta completa o suficiente → não mexe
     if len(pergunta_norm.split()) >= 4 and not pergunta_norm.startswith("e "):
         return pergunta_norm
+
+    # "e o presidente dos eua" / "e o dos eua" / "e o do eua"
+    m = re.match(r"^e (?:o|a) (?:presidente )?(?:dos|do|da|de) (.+)$", pergunta_norm)
+    if m:
+        resto = m.group(1).strip()
+        if resto:
+            return f"quem e o presidente de {resto}"
 
     # "e o de c" / "e a de java" / "e o c"
     m = re.match(r"^e (?:o|a) (?:de )?(.+)$", pergunta_norm)
@@ -223,8 +240,21 @@ def montar_vocabulario():
     return vocab
 
 
+# Palavras comuns do PT que NÃO devem ser "corrigidas" pelo difflib
+# (ex.: "dos" virava "dois" por causa de "dois mais dois" no banco)
+PALAVRAS_PROTEGIDAS = {
+    "dos", "das", "do", "da", "de", "em", "no", "na", "nos", "nas",
+    "um", "uma", "uns", "umas", "ao", "aos", "pelo", "pela", "pelos", "pelas",
+    "eu", "tu", "ele", "ela", "nos", "vos", "eles", "elas",
+    "meu", "minha", "teu", "tua", "seu", "sua",
+    "mais", "menos", "muito", "pouco", "bem", "mal",
+    "presidente", "brasil", "eua", "estados", "unidos",
+}
+
 def corrigir_palavra(palavra, vocabulario):
     if palavra in vocabulario:
+        return palavra
+    if palavra in PALAVRAS_PROTEGIDAS:
         return palavra
     if len(palavra) < 3:
         return palavra
@@ -247,16 +277,36 @@ def corrigir_digitacao(texto):
 # CAMADA 3 — BUSCA POR SIMILARIDADE
 # ==============================
 
+def palavras_conteudo(texto):
+    """Remove stopwords para comparar o que importa (python, brasil, mira...)."""
+    return set(
+        p for p in texto.split()
+        if p not in STOPWORDS and len(p) >= 1
+    )
+
+
 def jaccard(texto1, texto2):
-    p1 = set(texto1.split())
-    p2 = set(texto2.split())
+    """
+    Similaridade por palavras de CONTEÚDO (sem o/que/e/de...).
+    Evita que "o que e python" e "o que e java" pareçam iguais.
+    """
+    p1 = palavras_conteudo(texto1)
+    p2 = palavras_conteudo(texto2)
     if not p1 or not p2:
         return 0.0
     return len(p1 & p2) / len(p1 | p2)
 
 
 def similaridade_letras(texto1, texto2):
-    return difflib.SequenceMatcher(None, texto1, texto2).ratio()
+    """
+    Compara letra a letra só o miolo (sem stopwords).
+    Assim o prefixo "o que e " não engana o score.
+    """
+    c1 = " ".join(sorted(palavras_conteudo(texto1)))
+    c2 = " ".join(sorted(palavras_conteudo(texto2)))
+    if not c1 or not c2:
+        return 0.0
+    return difflib.SequenceMatcher(None, c1, c2).ratio()
 
 
 def escolher_resposta(respostas):
@@ -297,10 +347,17 @@ def busca_por_similaridade(texto):
         registrar_uso(pergunta_j, resp_j)
         return resp_j
 
+    # Similaridade de letras só vale se houver alguma palavra de conteúdo em comum
+    # (evita "presidente do brasil" ≈ "descobriu o brasil" só por "brasil")
     if melhor_l >= LIMIAR_DIGITACAO and resp_l is not None:
-        _ultima_chave_match = pergunta_l
-        registrar_uso(pergunta_l, resp_l)
-        return resp_l
+        if palavras_conteudo(texto) & palavras_conteudo(pergunta_l):
+            # precisa mais do que 1 stop-ish match: se a interseção for só 1 palavra
+            # genérica curta, exige score bem alto
+            inter = palavras_conteudo(texto) & palavras_conteudo(pergunta_l)
+            if len(inter) >= 2 or melhor_l >= 0.85:
+                _ultima_chave_match = pergunta_l
+                registrar_uso(pergunta_l, resp_l)
+                return resp_l
 
     return None
 
@@ -429,6 +486,33 @@ def salva_sugestao(pergunta, resposta):
     conexao.close()
 
 
+
+def tentar_fallback_ia(texto_original, pergunta_preparada=None):
+    """
+    Quando a base local falha, tenta a IA externa.
+    Se AUTO_APRENDER_IA e a IA responder, salva no SQLite.
+    pergunta_preparada: versão já expandida pelo contexto (melhor para a IA).
+    """
+    if fallback_ia is None:
+        return None
+
+    historico = historico_conversa if historico_conversa else None
+    # Prefere a pergunta expandida ("quem e o presidente de eua")
+    pergunta_para_ia = pergunta_preparada or texto_original
+    resposta_ia = fallback_ia.consultar_ia(pergunta_para_ia, historico)
+
+    if not resposta_ia:
+        return None
+
+    # Aprende com a formulação preparada (mais útil na próxima busca)
+    chave_aprender = normalizar(pergunta_para_ia)
+    if AUTO_APRENDER_IA:
+        salva_sugestao(chave_aprender, resposta_ia)
+
+    atualizar_contexto(texto_original, chave_aprender, resposta_ia)
+    return resposta_ia
+
+
 # ==============================
 # BUSCAR RESPOSTA (com contexto)
 # ==============================
@@ -456,7 +540,12 @@ def buscaResposta(texto):
         atualizar_contexto(texto, _ultima_chave_match, resposta)
         return resposta
 
-    # 3) Não sabe → aprende
+    # 3) Fallback de IA (se configurado)
+    resposta = tentar_fallback_ia(texto, pergunta)
+    if resposta is not None:
+        return resposta
+
+    # 4) Não sabe → aprende com o usuário
     print("Maria: Não sei responder isso.")
     resposta = input("Qual deveria ser a resposta? ")
     salva_sugestao(texto, resposta)
@@ -481,7 +570,10 @@ def buscaResposta_GUI(texto):
     resposta = busca_por_similaridade(pergunta)
     if resposta is not None:
         atualizar_contexto(texto, _ultima_chave_match, resposta)
-    return resposta
+        return resposta
+
+    # 3) Fallback de IA
+    return tentar_fallback_ia(texto, pergunta)
 
 
 def exibeResposta(resposta, nome):

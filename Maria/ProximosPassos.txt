@@ -1,1 +1,170 @@
-1Memória de contextoEntende “e o de C?” depois de falar de Python2Fallback de IAQuando a base não sabe, consulta um modelo e pode aprender a resposta3Recarregar base sem reiniciarDepois de aprender, a GUI enxerga na hora (hoje já grava no SQLite + memória)4Painel simplesVer top perguntas, total no banco, exportar5Melhorar a GUIHistórico colorido, botão limpar, status “base: 147 perguntas”
+================================================================================
+DONA MARIA — MAPA COMPLETO DO PROJETO + LEMBRETES
+================================================================================
+
+OBJETIVO
+  Assistente útil de verdade: conversa bem, base confiável, aprende com controle
+  meu, evolui para voz/mídia/PC e no futuro ML — sem perder privacidade nem
+  poder desligar a qualquer momento.
+
+EIXOS PERMANENTES (não esquecer)
+  [ ] Boa conversa = contexto + assunto certo + continuidade + honestidade
+  [ ] ML = depois da base estável; LLM externo ajuda, ML "nosso" é P5
+  [ ] Eu no controle = desligar, autorizar, editar o que é pessoal/sensível
+  [ ] Pasta da Maria = SEMPRE bloqueada para automação (código, chaves, BD interno)
+
+================================================================================
+P0 — JÁ FEITO
+================================================================================
+  [x] Interpretador PT (juntadas, digitação, normalização)
+  [x] SQLite (conhecimento.db) + vezes_usada
+  [x] Similaridade por conteúdo (não só "o que é")
+  [x] Memória de contexto (ex.: "e o de C?")
+  [x] Fallback Gemini + AUTO_APRENDER_IA
+  [x] GUI + console + iniciar.py
+  [x] Filtro de palavras proibidas
+
+================================================================================
+P1 — CASCATA DE IAs (conversa não cai)
+================================================================================
+  [ ] Principal: Google Gemini
+  [ ] Alternativa 1: Groq
+  [ ] Alternativa 2: OpenRouter (free)
+  [ ] Reserva: Groq estável (ex. llama-3.1-8b-instant) — SÓ no fim do chat
+  [ ] Cascata: Base → similaridade → Principal → Alt1 → Alt2 → Reserva → eu ensino
+  [ ] Log no terminal: qual IA respondeu / cota / erro
+
+LEMBRETE P1
+  - Reserva NUNCA entra em verificação em massa nem correção em massa
+  - Chaves em arquivos separados (api_key.txt, api_key_groq.txt, api_key_openrouter.txt)
+  - Nunca commitar chaves no Git
+
+================================================================================
+P2 — BASE CONFIÁVEL (fatos não apodrecem)
+================================================================================
+  [ ] Campos no BD: yellow, red, estavel + tabela/arquivo de checkpoint
+  [ ] Ao FECHAR o app: perguntar "Verificar base agora?"
+  [ ] Verificação em LOTES: 15 (ok) / 8 (cota baixa) / 5 (mínimo)
+  [ ] Verificação usa 2 IAs (nunca a reserva)
+  [ ] Lista com marcação [x] + continua do checkpoint na próxima vez
+  [ ] Filtro ESTÁVEL: não gasta token em saudação/definição óbvia
+  [ ] OK na verificação → ZERA yellow e red daquele item
+  [ ] Suspeito → yellow acumula; a cada 2 yellow → +1 red
+  [ ] Relatório verificação: tamanho BD, OK, alertas, progresso, checkpoint
+  [ ] Perguntar: "Há N desatualizados. Corrigir agora?"
+  [ ] Correção: 1 IA apenas; ordem por RED (maior prioridade primeiro)
+  [ ] Auto-corrige se NÃO sensível; se sensível → eu confirmo
+  [ ] Relatório correção: quantos corrigidos vs quantos ficaram pendentes
+
+LEMBRETE P2
+  - Flags só somem com OK (ou correção concluída tratada como OK)
+  - Sem "Sim" na correção = só guarda flags/checkpoint e fecha
+  - Sensível hoje ≈ palavras proibidas; depois → BD separado só meu
+
+================================================================================
+P2/P3 — MARCAR INFO FIXA NA GUI (ajuda o filtro de verificação)
+================================================================================
+  [ ] Após cada resposta, checkbox/botão pequeno: "Info fixa?"
+  [ ] Sim  → estavel = 1 no SQLite (pode pular na verificação com IA)
+  [ ] Não → estavel = 0 (entra no radar de yellow/red)
+  [ ] Vale para resposta da base e, se quiser, a que veio da IA e foi salva
+  [ ] Estado inicial: desmarcado ou herdado do BD se a pergunta já existir
+
+LEMBRETE INFO FIXA
+  - Sou eu ensinando o filtro, não a IA adivinhando
+  - Definições tipo "o que é variável" → fixa
+  - "presidente", rankings, "atual" → não fixa
+  - Depende do campo estavel (P2); UI junto com P3 ou no fim do P2
+
+================================================================================
+P3 — GUI / PAINEL (agradável de usar)
+================================================================================
+  [ ] Status: "base: N perguntas" / IA disponível?
+  [ ] Histórico colorido (você vs Maria)
+  [ ] Botão limpar conversa
+  [ ] Checkbox/botão "Info fixa?" após cada resposta (ver bloco P2/P3)
+  [ ] Painel simples: top usos, total no banco, exportar
+  [ ] Garantir base recarrega na hora após aprender
+
+LEMBRETE P3
+  - UX depois de P1 e da base de flags; não priorizar beleza antes disso
+
+================================================================================
+P4 — ASSISTENTE PESSOAL (conversa sobre MINHA vida/projetos)
+================================================================================
+  [ ] BD separado: pessoal.db (ou sensivel.db)
+  [ ] Detectar: meu projeto / estou fazendo / ideia minha
+  [ ] Perguntar: "Quer que eu guarde isso?"
+  [ ] Só eu edito o que é pessoal/sensível (IA não reescreve sozinha)
+  [ ] Não misturar fato geral e dado pessoal na mesma tabela
+
+LEMBRETE P4
+  - Consentimento explícito antes de salvar dado pessoal
+  - Preparação boa para ML depois (dados organizados)
+
+================================================================================
+P5 — MACHINE LEARNING (inteligência no NOSSO código)
+================================================================================
+  [ ] Embeddings + busca semântica (significado, não só palavra igual)
+  [ ] Classificador de intenção (saudação / fato / pessoal / projeto)
+  [ ] Ranking melhor do BD vs ir para IA
+  [ ] (Opcional) modelo local offline
+
+LEMBRETE P5
+  - LLM no fallback JÁ é ML de terceiros; P5 = ML no pipeline da Maria
+  - Só depois de P1–P4 estáveis
+  - Boa conversa começa ANTES do ML (contexto + base + IAs)
+
+================================================================================
+P6 — VOZ (conversável)
+================================================================================
+  [ ] STT: minha voz → texto (entra no motor atual)
+  [ ] TTS: resposta texto → voz da Maria
+  [ ] Atalho global: DESLIGAR / silenciar / não escutar microfone
+  [ ] Modo jogo: Maria off (não atrapalha)
+
+LEMBRETE P6
+  - Voz é casca; o cérebro continua sendo chat.py + BD + IAs
+  - Sempre poder desligar na hora
+
+================================================================================
+P7 — IMAGENS / MÍDIA
+================================================================================
+  [ ] Responder com imagem quando fizer sentido (mostrar ou gerar)
+  [ ] Eu controlo se gera imagem ou só exibe
+  [ ] Continua podendo responder só texto
+
+================================================================================
+P8 — PC ASSISTIDO (trabalho, com freio)
+================================================================================
+  [ ] Lista BRANCA de apps e pastas permitidos
+  [ ] Confirmar ações sensíveis ("Posso abrir X?")
+  [ ] BLOQUEIO TOTAL da pasta da Maria (código, chaves, .db internos)
+  [ ] Automação OFF por atalho (jogos / foco)
+  [ ] Log do que ela tentou fazer
+
+LEMBRETE P8 — POLÍTICA DE SEGURANÇA
+  - Maria ajuda só no que eu autorizei
+  - Eu desligo quando quiser
+  - Ela NUNCA acessa a própria pasta nem arquivos de chave
+  - Automação = lista branca, NÃO poder total no PC
+
+================================================================================
+ORDEM DE PROGRAMAÇÃO (próximos dias)
+================================================================================
+  Dias 1–2   → P1  Cascata 4 IAs + reserva
+  Dias 3–5   → P2  Flags + checkpoint + verificar ao fechar
+  Dias 6–7   → P2  Correção por prioridade + relatórios
+             → P2/P3 Checkbox "Info fixa?" (campo estavel + GUI)
+  Dias 8–9   → P3  Resto da GUI / painel
+  Depois     → P4  Pessoal → P5 ML → P6 Voz → P7 Mídia → P8 PC
+
+================================================================================
+FRASE-GUIA
+================================================================================
+  A Maria deve conversar bem, manter a base honesta, aprender com o meu
+  controle (incluindo marcar o que é info fixa), e no futuro ouvir/falar/
+  ajudar no PC — sem nunca tirar de mim o botão de desligar nem o acesso
+  à própria pasta dela.
+
+================================================================================
