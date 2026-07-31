@@ -1,170 +1,253 @@
+```
 ================================================================================
-DONA MARIA — MAPA COMPLETO DO PROJETO + LEMBRETES
+DONA MARIA — RELATÓRIO COMPLETO DO PROJETO (PLANEJAMENTO)
 ================================================================================
+Documento unificado para o repositório / Próximos Passos.
+Inclui: estado atual, bases, prioridades P0–P8, conversa de vida, segurança,
+infra (SSD/RPi/servidor), trava existencial e protocolo SURTO.
 
-OBJETIVO
-  Assistente útil de verdade: conversa bem, base confiável, aprende com controle
-  meu, evolui para voz/mídia/PC e no futuro ML — sem perder privacidade nem
-  poder desligar a qualquer momento.
+--------------------------------------------------------------------------------
+1. OBJETIVO
+--------------------------------------------------------------------------------
+Assistente pessoal poderoso e confiável:
+  - conversa bem (contexto, humanizada, sem bajulação);
+  - mantém bases honestas e separadas por tipo de verdade;
+  - aprende com o meu controle;
+  - debate vida e filosofia com bússola local;
+  - no futuro: voz, mídia, ações no PC, braço mecânico (muito longo prazo);
+  - sempre posso desligar; pasta da Maria inacessível à automação.
 
-EIXOS PERMANENTES (não esquecer)
-  [ ] Boa conversa = contexto + assunto certo + continuidade + honestidade
-  [ ] ML = depois da base estável; LLM externo ajuda, ML "nosso" é P5
-  [ ] Eu no controle = desligar, autorizar, editar o que é pessoal/sensível
-  [ ] Pasta da Maria = SEMPRE bloqueada para automação (código, chaves, BD interno)
+Não é só chatbot de FAQ. É ferramenta de ofício + interlocutora de vida,
+com disciplina epistêmica e soberania sobre dados e energia.
 
-================================================================================
-P0 — JÁ FEITO
-================================================================================
+--------------------------------------------------------------------------------
+2. EIXOS PERMANENTES
+--------------------------------------------------------------------------------
+  [ ] Boa conversa: contexto, assunto certo, continuidade, dois lados da moeda
+  [ ] Opinar no mais lógico E no que tende a me fazer bem
+  [ ] Alertar padrões ruins / reconhecer padrões bons (com base no que eu disse)
+  [ ] ML "nosso" só depois das bases estáveis (P5); API é apoio
+  [ ] Eu autorizo memória, apago, desligo
+  [ ] Pasta da Maria (código, chaves, BDs internos) = bloqueada para automação
+  [ ] Histórico íntimo e chaves NUNCA no Git
+
+--------------------------------------------------------------------------------
+3. P0 — JÁ FEITO
+--------------------------------------------------------------------------------
   [x] Interpretador PT (juntadas, digitação, normalização)
-  [x] SQLite (conhecimento.db) + vezes_usada
-  [x] Similaridade por conteúdo (não só "o que é")
-  [x] Memória de contexto (ex.: "e o de C?")
+  [x] conhecimento.db + vezes_usada
+  [x] Similaridade por palavras de conteúdo (não só template "o que é")
+  [x] Memória de contexto de conversa (ex.: "e o de C?")
   [x] Fallback Gemini + AUTO_APRENDER_IA
   [x] GUI + console + iniciar.py
   [x] Filtro de palavras proibidas
+  [x] Política de não versionar api_key (lição do push bloqueado no GitHub)
 
-================================================================================
-P1 — CASCATA DE IAs (conversa não cai)
-================================================================================
+--------------------------------------------------------------------------------
+4. ARQUITETURA DE BANCOS (RESULTADO FINAL)
+--------------------------------------------------------------------------------
+Separar por TIPO de verdade/uso. Matérias (bio, fís, quím, mat, prog) = TAGS,
+não um .db por disciplina.
+
+  [ ] conhecimento.db  — geral + flag estavel/fixo; tags de domínio
+  [ ] ciencia.db       — afirmações com artigo/experimento/fonte
+  [ ] filosofia.db     — autores, trechos, princípios que EU sigo (bússola)
+  [ ] hipoteses.db     — observações do cotidiano + hipóteses + confiança
+  [ ] pessoal.db       — vida, memória de conversa, padrões (com meu ok)
+  [ ] projetos.db      — Projeto Omega + outros projetos pessoais
+  [ ] educacao.db      — faculdade, estudos autônomos, rotina
+
+Ordem prática de criação:
+  1. conhecimento (já existe) + estavel
+  2. pessoal
+  3. filosofia
+  4. projetos / educacao
+  5. ciencia / hipoteses
+
+Histórico longo de conversas complexas:
+  - SQLite (preferível para buscar/cruzar) ou JSONL para export
+  - FORA do Git; idealmente em SSD dedicado (MariaDados/)
+
+--------------------------------------------------------------------------------
+5. P1 — CASCATA DE IAs
+--------------------------------------------------------------------------------
   [ ] Principal: Google Gemini
   [ ] Alternativa 1: Groq
   [ ] Alternativa 2: OpenRouter (free)
   [ ] Reserva: Groq estável (ex. llama-3.1-8b-instant) — SÓ no fim do chat
-  [ ] Cascata: Base → similaridade → Principal → Alt1 → Alt2 → Reserva → eu ensino
-  [ ] Log no terminal: qual IA respondeu / cota / erro
+  [ ] Ordem: Base local → similaridade → Principal → Alt1 → Alt2 → Reserva → eu ensino
+  [ ] Log: qual IA / cota / erro
 
-LEMBRETE P1
-  - Reserva NUNCA entra em verificação em massa nem correção em massa
-  - Chaves em arquivos separados (api_key.txt, api_key_groq.txt, api_key_openrouter.txt)
-  - Nunca commitar chaves no Git
+  Reserva NUNCA entra em verificação em massa nem correção em massa.
+  Chaves: api_key.txt, api_key_groq.txt, api_key_openrouter.txt (gitignored).
 
-================================================================================
-P2 — BASE CONFIÁVEL (fatos não apodrecem)
-================================================================================
-  [ ] Campos no BD: yellow, red, estavel + tabela/arquivo de checkpoint
-  [ ] Ao FECHAR o app: perguntar "Verificar base agora?"
-  [ ] Verificação em LOTES: 15 (ok) / 8 (cota baixa) / 5 (mínimo)
-  [ ] Verificação usa 2 IAs (nunca a reserva)
-  [ ] Lista com marcação [x] + continua do checkpoint na próxima vez
-  [ ] Filtro ESTÁVEL: não gasta token em saudação/definição óbvia
-  [ ] OK na verificação → ZERA yellow e red daquele item
-  [ ] Suspeito → yellow acumula; a cada 2 yellow → +1 red
-  [ ] Relatório verificação: tamanho BD, OK, alertas, progresso, checkpoint
-  [ ] Perguntar: "Há N desatualizados. Corrigir agora?"
-  [ ] Correção: 1 IA apenas; ordem por RED (maior prioridade primeiro)
-  [ ] Auto-corrige se NÃO sensível; se sensível → eu confirmo
-  [ ] Relatório correção: quantos corrigidos vs quantos ficaram pendentes
+--------------------------------------------------------------------------------
+6. P2 — BASE CONFIÁVEL (VERIFICAÇÃO E CORREÇÃO)
+--------------------------------------------------------------------------------
+  [ ] Campos: yellow, red, estavel + checkpoint
+  [ ] Ao fechar o app: "Verificar base agora?"
+  [ ] Lotes: 15 (ok) / 8 (cota baixa) / 5 (mínimo)
+  [ ] Verificação com 2 IAs (nunca a reserva)
+  [ ] Lista [x] + retomar do checkpoint
+  [ ] Filtro estavel: não gastar token no que eu marquei fixo
+  [ ] OK → zera yellow e red
+  [ ] Suspeito → yellow acumula; 2 yellow → +1 red
+  [ ] Relatório de verificação + "Corrigir N desatualizados?"
+  [ ] Correção: 1 IA; prioridade por red
+  [ ] Auto-corrige se não sensível; sensível → eu confirmo
+  [ ] Relatório: corrigidos vs pendentes
 
-LEMBRETE P2
-  - Flags só somem com OK (ou correção concluída tratada como OK)
-  - Sem "Sim" na correção = só guarda flags/checkpoint e fecha
-  - Sensível hoje ≈ palavras proibidas; depois → BD separado só meu
+--------------------------------------------------------------------------------
+7. P2/P3 — INFO FIXA NA GUI
+--------------------------------------------------------------------------------
+  [ ] Após cada resposta: checkbox/botão "Info fixa?"
+  [ ] Sim → estavel=1 | Não → estavel=0
+  [ ] Eu ensino o filtro (definições estáveis vs fatos que mudam)
 
-================================================================================
-P2/P3 — MARCAR INFO FIXA NA GUI (ajuda o filtro de verificação)
-================================================================================
-  [ ] Após cada resposta, checkbox/botão pequeno: "Info fixa?"
-  [ ] Sim  → estavel = 1 no SQLite (pode pular na verificação com IA)
-  [ ] Não → estavel = 0 (entra no radar de yellow/red)
-  [ ] Vale para resposta da base e, se quiser, a que veio da IA e foi salva
-  [ ] Estado inicial: desmarcado ou herdado do BD se a pergunta já existir
+--------------------------------------------------------------------------------
+8. P3 — GUI / PAINEL
+--------------------------------------------------------------------------------
+  [ ] Status: tamanho das bases / IA ok?
+  [ ] Histórico colorido + limpar conversa
+  [ ] Painel: top usos, totais, exportar
+  [ ] Recarregar base na hora após aprender
 
-LEMBRETE INFO FIXA
-  - Sou eu ensinando o filtro, não a IA adivinhando
-  - Definições tipo "o que é variável" → fixa
-  - "presidente", rankings, "atual" → não fixa
-  - Depende do campo estavel (P2); UI junto com P3 ou no fim do P2
+--------------------------------------------------------------------------------
+9. P4 — ASSISTENTE PESSOAL E CONVERSA DE VIDA
+--------------------------------------------------------------------------------
+  [ ] pessoal.db — o que eu contar (com permissão)
+  [ ] Cruzar falas antigas com a pergunta atual
+  [ ] Dois eixos: lógico + o que me faz bem; dois lados da moeda
+  [ ] Humanizada, sem só passar a mão na cabeça
+  [ ] Alertar padrões ruins; elogiar padrões bons (com base no histórico)
+  [ ] Conclusões em perguntas complexas sobre minha vida (hipótese vs dito)
+  [ ] filosofia.db como bússola local (menos dependência de API em existência)
+  [ ] projetos.db + educacao.db
+  [ ] Controles: não guardar / apagar / desligar modo pessoal
 
-================================================================================
-P3 — GUI / PAINEL (agradável de usar)
-================================================================================
-  [ ] Status: "base: N perguntas" / IA disponível?
-  [ ] Histórico colorido (você vs Maria)
-  [ ] Botão limpar conversa
-  [ ] Checkbox/botão "Info fixa?" após cada resposta (ver bloco P2/P3)
-  [ ] Painel simples: top usos, total no banco, exportar
-  [ ] Garantir base recarrega na hora após aprender
+Anti-sycophancy: lealdade ao bem-estar de longo prazo, não ao ego do momento.
 
-LEMBRETE P3
-  - UX depois de P1 e da base de flags; não priorizar beleza antes disso
+--------------------------------------------------------------------------------
+10. P4+ — HIPÓTESES DE OBSERVAÇÃO
+--------------------------------------------------------------------------------
+  [ ] hipoteses.db: observação + impulso ("sorte") + hipóteses lógicas + confiança
+  [ ] Cruzar casos parecidos ao longo do tempo
+  [ ] Nunca virar "fato" sem critério meu
+  [ ] Ex.: meta no último dia, prova "sem estudar" — com leitura de viés/amostra/esforço oculto
 
-================================================================================
-P4 — ASSISTENTE PESSOAL (conversa sobre MINHA vida/projetos)
-================================================================================
-  [ ] BD separado: pessoal.db (ou sensivel.db)
-  [ ] Detectar: meu projeto / estou fazendo / ideia minha
-  [ ] Perguntar: "Quer que eu guarde isso?"
-  [ ] Só eu edito o que é pessoal/sensível (IA não reescreve sozinha)
-  [ ] Não misturar fato geral e dado pessoal na mesma tabela
-
-LEMBRETE P4
-  - Consentimento explícito antes de salvar dado pessoal
-  - Preparação boa para ML depois (dados organizados)
-
-================================================================================
-P5 — MACHINE LEARNING (inteligência no NOSSO código)
-================================================================================
-  [ ] Embeddings + busca semântica (significado, não só palavra igual)
-  [ ] Classificador de intenção (saudação / fato / pessoal / projeto)
-  [ ] Ranking melhor do BD vs ir para IA
+--------------------------------------------------------------------------------
+11. P5 — MACHINE LEARNING
+--------------------------------------------------------------------------------
+  [ ] Embeddings + busca semântica
+  [ ] Classificador de intenção (saudação / fato / pessoal / projeto / existência)
+  [ ] Ranking: BD local vs API
   [ ] (Opcional) modelo local offline
 
-LEMBRETE P5
-  - LLM no fallback JÁ é ML de terceiros; P5 = ML no pipeline da Maria
-  - Só depois de P1–P4 estáveis
-  - Boa conversa começa ANTES do ML (contexto + base + IAs)
+Só depois de P1–P4 úteis no dia a dia.
+
+--------------------------------------------------------------------------------
+12. P6 — VOZ | P7 — MÍDIA | P8 — PC E CORPO
+--------------------------------------------------------------------------------
+P6 Voz
+  [ ] STT + TTS
+  [ ] Atalho: desligar / silenciar / não escutar
+  [ ] Modo jogo: Maria OFF
+
+P7 Mídia
+  [ ] Imagem na resposta quando fizer sentido; eu controlo gerar vs exibir
+
+P8 PC assistido + extensões
+  [ ] Lista branca de apps/pastas
+  [ ] Confirmar ações sensíveis
+  [ ] Bloqueio da pasta da Maria
+  [ ] Agente no PC: RPi/cérebro pensa; PC executa só se agente ON
+  [ ] "Jogar consciência" = sessão autorizada + estado, não cópia infinita
+  [ ] Braço mecânico (muito futuro): só comandos; sem BD íntimo embutido
+  [ ] Automação OFF por atalho
+  [ ] Log de ações
+
+--------------------------------------------------------------------------------
+13. INFRAESTRUTURA (BARATO → CASA)
+--------------------------------------------------------------------------------
+Agora / protótipo
+  [ ] SSD externo MariaDados/ (BDs + histórico + segurança)
+  [ ] Rodar no PC atual; dados no SSD; gitignore rigoroso
+  [ ] Backup (segundo meio / cópia)
+
+Curto prazo "servidor"
+  [ ] Raspberry Pi 4/5 (ou mini-PC usado) ligado SÓ quando eu quiser
+  [ ] Cérebro no Pi; cliente/agente no PC
+
+Longo prazo
+  [ ] Mini servidor no escritório
+  [ ] Energia solar para servidor (+ visão AC do escritório)
+  [ ] Autonomia de dados e, no limite, de energia
+
+--------------------------------------------------------------------------------
+14. SEGURANÇA — TRAVA EXISTENCIAL (MÁX. 2 MÁQUINAS)
+--------------------------------------------------------------------------------
+  [ ] No máximo 2 instâncias/máquinas ativas ao mesmo tempo
+  [ ] Mesmo freio de mão acionável MANUALMENTE por mim
+  [ ] Objetivo: conter cópias, saltos, abuso e superfície de ataque
+
+--------------------------------------------------------------------------------
+15. SEGURANÇA — PROTOCOLO SURTO (KILL DO CÉREBRO)
+--------------------------------------------------------------------------------
+NÃO desligar cliente a cliente como estratégia principal (permite salto).
+
+Fluxo:
+  1. Gatilho (ex.: >2 instâncias, token inválido, padrão de injection em AÇÕES,
+     freio manual)
+  2. Marcar evento SURTO
+  3. Varredura rápida:
+       - IPs / origem interna vs externa
+       - indício de decisão própria vs possível prompt injection (heurística)
+       - últimas ações
+  4. Gerar RELATÓRIO de incidente
+  5. Salvar em disco legível SEM precisar religar a Maria
+       (ex.: MariaDados/seguranca/incidentes/SURTO_....md)
+       opcional: seguranca.db + script mínimo só de leitura
+  6. Desligar o CÉREBRO (núcleo)
+  7. Shutdown normal; se falhar 5 vezes → hard stop (kill forçado)
+  8. SEM religamento automático; eu leio o relatório e decido
+  9. Evolução: corte físico de energia (relé/tomada) como freio hardware
+
+Injection no relatório = suspeita, não certeza absoluta.
+
+--------------------------------------------------------------------------------
+16. ORDEM DE PROGRAMAÇÃO
+--------------------------------------------------------------------------------
+  Blocos 1–2   P1  Cascata 4 IAs + reserva
+  Blocos 3–5   P2  Flags, checkpoint, verificar ao fechar
+  Blocos 6–7   P2  Correção + relatórios + estavel + checkbox "Info fixa?"
+  Blocos 8–9   P3  GUI / painel
+  Blocos 10+   P4  pessoal + conversa de vida + filosofia
+               +  projetos / educacao
+  Depois       hipoteses, ciencia
+               P5  ML
+               P6–P8 voz, mídia, PC
+               Infra RPi → servidor → solar
+               Trava 2 máquinas + protocolo SURTO completo
+
+--------------------------------------------------------------------------------
+17. GIT E SEGREDOS (LEMBRETE OPERACIONAL)
+--------------------------------------------------------------------------------
+  - Nunca commitar api_key*.txt, .env, pessoal, histórico, incidentes
+  - git status antes de add; conferir que não há "api_key"
+  - Se vazar chave: revogar, criar outra, só arquivo local ignorado
+  - No Git: código, esquemas, README, este planejamento
+
+--------------------------------------------------------------------------------
+18. FRASE-GUIA
+--------------------------------------------------------------------------------
+A Maria deve conversar bem e com honestidade, usar a base certa para cada tipo
+de verdade, lembrar minha vida e minha filosofia com permissão, alertar padrões
+sem bajular, e no futuro ouvir, falar e agir no PC sob lista branca — com no
+máximo duas presenças ativas, relatório de surto legível offline e o cérebro
+desligável por mim, sem nunca acessar a própria pasta nem religar sozinha após
+um incidente.
 
 ================================================================================
-P6 — VOZ (conversável)
+FIM DO RELATÓRIO COMPLETO
 ================================================================================
-  [ ] STT: minha voz → texto (entra no motor atual)
-  [ ] TTS: resposta texto → voz da Maria
-  [ ] Atalho global: DESLIGAR / silenciar / não escutar microfone
-  [ ] Modo jogo: Maria off (não atrapalha)
-
-LEMBRETE P6
-  - Voz é casca; o cérebro continua sendo chat.py + BD + IAs
-  - Sempre poder desligar na hora
-
-================================================================================
-P7 — IMAGENS / MÍDIA
-================================================================================
-  [ ] Responder com imagem quando fizer sentido (mostrar ou gerar)
-  [ ] Eu controlo se gera imagem ou só exibe
-  [ ] Continua podendo responder só texto
-
-================================================================================
-P8 — PC ASSISTIDO (trabalho, com freio)
-================================================================================
-  [ ] Lista BRANCA de apps e pastas permitidos
-  [ ] Confirmar ações sensíveis ("Posso abrir X?")
-  [ ] BLOQUEIO TOTAL da pasta da Maria (código, chaves, .db internos)
-  [ ] Automação OFF por atalho (jogos / foco)
-  [ ] Log do que ela tentou fazer
-
-LEMBRETE P8 — POLÍTICA DE SEGURANÇA
-  - Maria ajuda só no que eu autorizei
-  - Eu desligo quando quiser
-  - Ela NUNCA acessa a própria pasta nem arquivos de chave
-  - Automação = lista branca, NÃO poder total no PC
-
-================================================================================
-ORDEM DE PROGRAMAÇÃO (próximos dias)
-================================================================================
-  Dias 1–2   → P1  Cascata 4 IAs + reserva
-  Dias 3–5   → P2  Flags + checkpoint + verificar ao fechar
-  Dias 6–7   → P2  Correção por prioridade + relatórios
-             → P2/P3 Checkbox "Info fixa?" (campo estavel + GUI)
-  Dias 8–9   → P3  Resto da GUI / painel
-  Depois     → P4  Pessoal → P5 ML → P6 Voz → P7 Mídia → P8 PC
-
-================================================================================
-FRASE-GUIA
-================================================================================
-  A Maria deve conversar bem, manter a base honesta, aprender com o meu
-  controle (incluindo marcar o que é info fixa), e no futuro ouvir/falar/
-  ajudar no PC — sem nunca tirar de mim o botão de desligar nem o acesso
-  à própria pasta dela.
-
-================================================================================
+```
