@@ -2,7 +2,6 @@
 models.py - Funções de acesso ao banco (CRUD)
 """
 from datetime import datetime, date, timedelta
-from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 import json
 
@@ -207,6 +206,42 @@ def listar_aulas_turma(turma_id: int) -> List[Dict]:
     conn.close()
     return [dict(r) for r in rows]
 
+def obter_aula(aula_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT a.*, t.nome AS turma_nome, t.disciplina, t.cor AS turma_cor
+        FROM aulas a
+        JOIN turmas t ON t.id = a.turma_id
+        WHERE a.id = ?
+        """,
+        (aula_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def atualizar_aula(aula_id: int, **campos) -> None:
+    permitidos = {
+        "status", "estudada", "dada", "conteudo", "links",
+        "observacao", "data",
+    }
+    partes, valores = [], []
+    for k, v in campos.items():
+        if k in permitidos:
+            partes.append(f"{k} = ?")
+            valores.append(v)
+    if not partes:
+        return
+    valores.append(aula_id)
+    conn = get_connection()
+    conn.execute(
+        f"UPDATE aulas SET {', '.join(partes)} WHERE id = ?",
+        valores,
+    )
+    conn.commit()
+    conn.close()
+
 
 # ============================================================
 # EVENTOS
@@ -380,3 +415,231 @@ def remarcar_aula(aula_id: int, nova_data_str: str) -> str:
         f"Aula movida para {nova_data_str}. "
         f"{n} aula(s) seguinte(s) foram empurradas para frente."
     )
+
+def listar_aulas_periodo(data_inicio: str, data_fim: str) -> list:
+    """Aulas no periodo, com dados da turma."""
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT a.*, t.nome AS turma_nome, t.disciplina, t.cor AS turma_cor
+        FROM aulas a
+        JOIN turmas t ON t.id = a.turma_id
+        WHERE a.data >= ? AND a.data <= ?
+          AND t.ativa = 1
+        ORDER BY a.data, t.nome
+        """,
+        (data_inicio, data_fim),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def obter_aula(aula_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT a.*, t.nome AS turma_nome, t.disciplina, t.cor AS turma_cor
+        FROM aulas a
+        JOIN turmas t ON t.id = a.turma_id
+        WHERE a.id = ?
+        """,
+        (aula_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def atualizar_aula(aula_id: int, **campos) -> None:
+    permitidos = {
+        "status", "estudada", "dada", "conteudo", "links",
+        "observacao", "data",
+    }
+    partes, valores = [], []
+    for k, v in campos.items():
+        if k in permitidos:
+            partes.append(f"{k} = ?")
+            valores.append(v)
+    if not partes:
+        return
+    valores.append(aula_id)
+    conn = get_connection()
+    conn.execute(
+        f"UPDATE aulas SET {', '.join(partes)} WHERE id = ?",
+        valores,
+    )
+    conn.commit()
+    conn.close()
+
+# ============================================================
+# ALUNOS
+# ============================================================
+
+def listar_alunos(turma_id: int, apenas_ativos: bool = True) -> list:
+    conn = get_connection()
+    if apenas_ativos:
+        rows = conn.execute(
+            """
+            SELECT * FROM alunos
+            WHERE turma_id = ? AND ativo = 1
+            ORDER BY nome
+            """,
+            (turma_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT * FROM alunos
+            WHERE turma_id = ?
+            ORDER BY nome
+            """,
+            (turma_id,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def contar_alunos(turma_id: int) -> int:
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM alunos WHERE turma_id = ? AND ativo = 1",
+        (turma_id,),
+    ).fetchone()
+    conn.close()
+    return row["n"] if row else 0
+
+
+def criar_aluno(turma_id: int, nome: str, observacao: str = "") -> int:
+    nome = (nome or "").strip()
+    if not nome:
+        raise ValueError("Nome do aluno e obrigatorio.")
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO alunos (turma_id, nome, observacao, ativo)
+        VALUES (?, ?, ?, 1)
+        """,
+        (turma_id, nome, observacao or ""),
+    )
+    aluno_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return aluno_id
+
+
+def atualizar_aluno(aluno_id: int, **campos) -> None:
+    permitidos = {"nome", "observacao", "ativo", "turma_id"}
+    partes, valores = [], []
+    for k, v in campos.items():
+        if k in permitidos:
+            partes.append(f"{k} = ?")
+            valores.append(v)
+    if not partes:
+        return
+    valores.append(aluno_id)
+    conn = get_connection()
+    conn.execute(
+        f"UPDATE alunos SET {', '.join(partes)} WHERE id = ?",
+        valores,
+    )
+    conn.commit()
+    conn.close()
+
+
+def desativar_aluno(aluno_id: int) -> None:
+    atualizar_aluno(aluno_id, ativo=0)
+
+
+def obter_resumo_aluno(aluno_id: int) -> dict:
+    """Media de notas, total de coins e qtd de registros."""
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT
+            COUNT(*) AS qtd_registros,
+            AVG(nota_dia) AS media_notas,
+            SUM(coins) AS total_coins
+        FROM registros_aula
+        WHERE aluno_id = ?
+        """,
+        (aluno_id,),
+    ).fetchone()
+    conn.close()
+    return {
+        "qtd_registros": row["qtd_registros"] or 0,
+        "media_notas": round(row["media_notas"], 2) if row["media_notas"] is not None else None,
+        "total_coins": row["total_coins"] or 0,
+    }
+
+# ============================================================
+# REGISTROS POR AULA + ALUNO
+# ============================================================
+
+def listar_registros_aula(aula_id: int) -> list:
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT r.*, al.nome AS aluno_nome
+        FROM registros_aula r
+        JOIN alunos al ON al.id = r.aluno_id
+        WHERE r.aula_id = ?
+        ORDER BY al.nome
+        """,
+        (aula_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def salvar_registro_aula(
+    aula_id: int,
+    aluno_id: int,
+    nota_dia=None,
+    coins: int = 0,
+    analise: str = "",
+) -> None:
+    """Insere ou atualiza o registro do aluno naquela aula."""
+    conn = get_connection()
+    existente = conn.execute(
+        """
+        SELECT id FROM registros_aula
+        WHERE aula_id = ? AND aluno_id = ?
+        """,
+        (aula_id, aluno_id),
+    ).fetchone()
+
+    if existente:
+        conn.execute(
+            """
+            UPDATE registros_aula
+            SET nota_dia = ?, coins = ?, analise = ?, data_registro = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (nota_dia, coins or 0, analise or "", existente["id"]),
+        )
+    else:
+        conn.execute(
+            """
+            INSERT INTO registros_aula (aula_id, aluno_id, nota_dia, coins, analise)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (aula_id, aluno_id, nota_dia, coins or 0, analise or ""),
+        )
+    conn.commit()
+    conn.close()
+
+
+def listar_alunos_com_registro(aula_id: int, turma_id: int) -> list:
+    alunos = listar_alunos(turma_id, apenas_ativos=True)
+    registros = {r["aluno_id"]: r for r in listar_registros_aula(aula_id)}
+    resultado = []
+    for al in alunos:
+        reg = registros.get(al["id"], {})
+        resultado.append({
+            "aluno_id": al["id"],
+            "nome": al["nome"],
+            "nota_dia": reg.get("nota_dia"),
+            "coins": reg.get("coins") if reg.get("coins") is not None else 0,
+            "analise": reg.get("analise") or "",
+        })
+    return resultado
