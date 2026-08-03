@@ -1,0 +1,128 @@
+Planejamento de Desenvolvimento — GerenciadorDeTurmas
+Objetivo: App desktop em Flet + SQLite para planejamento de aulas, com calendário oficial do ano, turmas recorrentes, status de estudo/aula dada, alunos, notas, coins e relatórios (com IA).
+Ordem: Do mais crítico/funcional → para o mais estético/secundário.
+
+PARTE 1 — Fundação (obrigatória)
+
+Criar a pasta GerenciadorDeTurmas e a estrutura de pastas.
+Criar requirements.txt (flet, pillow, holidays, httpx, etc.).
+Criar database.py com todas as tabelas:
+turmas
+aulas (geradas)
+eventos (feriados, recessos, reposições, monitorias, eventos únicos)
+alunos
+registros_aula (nota_dia, coins, análise)
+relatorios
+configuracoes (ano letivo, modelo de IA, etc.)
+
+Criar funções básicas de conexão e criação do banco.
+Integrar biblioteca holidays (Brasil) + possibilidade de o usuário adicionar feriados/recessos manuais → o app nunca fica defasado.
+Criar main.py com navegação simples (NavigationRail ou Tabs) com as 5 abas vazias:
+Semana | Mês | Turmas | Gerenciar | Relatórios
+
+
+Critério de conclusão da Parte 1: App abre, mostra as 5 abas e o banco é criado corretamente.
+
+PARTE 2 — Gerenciar (o coração do sistema)
+
+Tela de listagem de turmas (nome, disciplina, dias da semana, período).
+Formulário de criar/editar turma:
+Nome, disciplina
+Quantas vezes por semana + quais dias
+Data início e data fim
+
+Lógica de geração automática de aulas no período (respeitando feriados/recessos oficiais + manuais).
+Cadastro de eventos únicos, feriados e recessos (com tipo e cor).
+Quando existe feriado/recesso no dia da aula → a aula é pulada ou marcada como “adiada” (vamos decidir juntos a regra exata).
+Acesso a uma aula específica a partir do Gerenciar (editar conteúdo, links, imagens, marcar estudada/dada).
+
+Critério de conclusão: Consigo criar turmas, gerar as aulas no calendário e cadastrar eventos.
+
+PARTE 3 — Visão Semana (uso diário)
+
+Calendário semanal navegável (semana atual + anterior/próxima).
+Em cada dia mostrar as aulas em formato compacto (card pequeno).
+Cada card mostra:
+Nome da turma / matéria
+Status (estudada? dada?)
+Indicador se tem conteúdo/imagem/link
+
+Cores conforme definido:
+Verde = dada
+Amarelo = desta semana ainda não dada
+Branco = futuras
+Roxo = eventos
+Laranja = reposição/monitoria
+
+Ao clicar na aula → abre a tela de detalhe (mesmo componente usado no Gerenciar).
+Botão rápido “Marcar como estudada” e “Marcar como dada” + abrir relatório da aula.
+
+Critério de conclusão: Consigo ver a semana e interagir com as aulas do dia.
+
+PARTE 4 — Visão Mês
+
+Calendário mensal completo.
+Indicadores visuais resumidos (bolinhas ou números de aulas por dia).
+Destaque de recessos, feriados e eventos.
+Clique no dia → mostra resumo das aulas daquele dia ou navega para a semana correspondente.
+Filtros rápidos (só minhas turmas, só eventos, etc.).
+
+Critério de conclusão: Visão mensal funcional e navegável.
+
+PARTE 5 — Turmas + Alunos + Acompanhamento
+
+Lista de turmas com quantidade de alunos.
+Dentro de cada turma:
+Lista de alunos (adicionar, editar, desativar)
+Histórico de notas e coins por aluno
+
+Em cada aula dada → formulário rápido de registro por aluno:
+Nota do dia
+Coins
+Análise/feedback da aula
+
+Atualização dos dados a partir do relatório da aula, do Gerenciar e da aba Turmas.
+
+Critério de conclusão: Consigo cadastrar alunos e registrar nota/coins/análise por aula.
+
+PARTE 6 — Relatórios de Aula + Histórico
+
+Ao marcar aula como “dada”, abrir formulário de relatório da aula.
+Salvar o relatório vinculado à aula.
+Na aba Relatórios:
+Histórico de todos os relatórios de aula
+Filtros por turma, data, aluno
+
+Visualização e edição posterior dos relatórios.
+
+Critério de conclusão: Relatórios de aula são salvos e consultáveis.
+
+PARTE 7 — Relatório do Aluno com IA
+
+Na aba Relatórios → seção “Gerar Relatório do Aluno”.
+Usuário seleciona a turma e o aluno.
+Botão para carregar um arquivo de modelo (.txt, .md ou .docx) via gerenciador de arquivos.
+O app junta:
+Dados do aluno (notas, coins, % de aulas, feedbacks)
+O modelo enviado pelo usuário
+
+Envia para uma IA gratuita online (Groq / Gemini free / OpenRouter – vamos escolher a mais estável).
+Mostra o relatório gerado e permite salvar.
+
+Critério de conclusão: Consigo gerar um relatório personalizado do aluno usando um modelo que eu mesmo enviei.
+
+PARTE 8 — Polimento e extras (estético + qualidade de vida)
+
+Melhorar visual (cores, tipografia, espaçamentos, dark/light mode).
+Miniaturas de imagens nas aulas.
+Exportar relatório em PDF ou Markdown.
+Backup/restauração do banco.
+Configurações (ano letivo padrão, chave da IA, etc.).
+Validações e mensagens de erro amigáveis.
+Ícones e feedback visual (snackbars, loading).
+Preparar estrutura para futura venda (licença, multi-usuário, etc. – só esqueleto).
+
+
+Ordem recomendada de execução
+1 → 2 → 3 → 5 → 6 → 4 → 7 → 8
+(A visão Mês pode ficar um pouco depois da Semana, porque a Semana é o que você usa todo dia.)
