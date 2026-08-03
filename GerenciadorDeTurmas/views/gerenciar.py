@@ -15,6 +15,7 @@ from models import (
     criar_evento,
     excluir_evento,
     regenerar_todas_turmas_ativas,
+    remarcar_aula,
 )
 from database import get_connection
 from utils.calendar_helpers import dias_semana_para_texto, parse_dias_semana
@@ -224,18 +225,13 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                 def fazer_remarcar(e, campo=tf_data, aula_id=a["id"]):
                     nova_data = (campo.value or "").strip()
                     try:
-                        date.fromisoformat(nova_data)  # valida formato
-                        conn = get_connection()
-                        conn.execute(
-                            "UPDATE aulas SET data = ? WHERE id = ?",
-                            (nova_data, aula_id),
-                        )
-                        conn.commit()
-                        conn.close()
-                        mostrar_msg(f"Aula remarcada para {nova_data}")
+                        remarcar_aula
+                        msg = remarcar_aula(aula_id, nova_data)
+                        mostrar_msg(msg)
                         carregar_aulas_turma(turma_selecionada_id["id"])
+                        atualizar_lista_turmas()  # atualiza contagem se necessário
                     except Exception as ex:
-                        mostrar_msg(f"Data inválida: {ex}", ft.Colors.RED_400)
+                        mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
 
                 painel_aulas.controls.append(
                     ft.Container(

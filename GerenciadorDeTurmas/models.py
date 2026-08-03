@@ -1,7 +1,7 @@
 """
 models.py - Funções de acesso ao banco (CRUD)
 """
-
+from datetime import datetime, date, timedelta
 from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 import json
@@ -276,3 +276,107 @@ def regenerar_todas_turmas_ativas() -> int:
     for t in turmas:
         total += gerar_aulas_da_turma(t["id"], regenerar=True)
     return total
+
+def _proxima_data_valida(depois_de: date, dias_semana: list, bloqueadas: set, data_fim: date) -> date | None:
+    """Próxima data > depois_de que cai num dia da semana da turma e não está bloqueada."""
+    atual = depois_de + timedelta(days=1)
+    while atual <= data_fim:
+        if atual.weekday() in dias_semana and atual not in bloqueadas:
+            return atual
+        atual += timedelta(days=1)
+    return None
+
+
+def remarcar_aula(aula_id: int, nova_data_str: str) -> str:
+    """
+    Remarca uma aula.
+    Se a nova data já tiver aula da mesma turma, empurra essa e todas as
+    seguintes uma ocorrência para frente.
+    Retorna mensagem descritiva.
+    """
+    from datetime import timedelta  # se ainda não importou no topo
+
+    conn = get_connection()
+    aula = conn.execute("SELECT * FROM aulas WHERE id = ?", (aula_id,)).fetchone()
+    if not aula:
+        conn.close()
+        raise ValueError("Aula não encontrada.")
+
+    turma = conn.execute("SELECT * FROM turmas WHERE id = ?", (aula["turma_id"],)).fetchone()
+    if not turma:
+        conn.close()
+        raise ValueError("Turma não encontrada.")
+
+    nova_data = date.fromisoformat(nova_data_str)
+    turma_id = aula["turma_id"]
+    dias = parse_dias_semana(turma["dias_semana"])
+    inicio = date.fromisoformat(turma["data_inicio"])
+    fim = date.fromisoformat(turma["data_fim"])
+    bloqueadas = _datas_bloqueadas(inicio, fim)
+
+    # Já está nessa data?
+    if aula["data"] == nova_data_str:
+        conn.close()
+        return "Aula já está nessa data."
+
+    # Existe outra aula da mesma turma nessa data?
+    conflito = conn.execute(
+        """
+        SELECT * FROM aulas
+        WHERE turma_id = ? AND data = ? AND id != ?
+        """,
+        (turma_id, nova_data_str, aula_id),
+    ).fetchone()
+
+    if not conflito:
+        # Sem conflito: só atualiza
+        conn.execute("UPDATE aulas SET data = ? WHERE id = ?", (nova_data_str, aula_id))
+        conn.commit()
+        conn.close()
+        return f"Aula remarcada para {nova_data_str}."
+
+    # ----- Há conflito: empurrar para frente -----
+    # Todas as aulas desta turma com data >= nova_data, exceto a que estamos movendo
+    para_empurrar = conn.execute(
+        """
+        SELECT id, data FROM aulas
+        WHERE turma_id = ? AND data >= ? AND id != ?
+        ORDER BY data ASC
+        """,
+        (turma_id, nova_data_str, aula_id),
+    ).fetchall()
+
+    # Calcula as novas datas (da última para a primeira, para não violar UNIQUE)
+    # Sequência desejada:
+    #   aula movida → nova_data
+    #   1ª empurrada → próxima válida depois de nova_data
+    #   2ª empurrada → próxima válida depois da anterior
+    #   ...
+    novas_datas = []  # lista de (id, nova_data_str)
+    cursor_data = nova_data
+
+    for row in para_empurrar:
+        prox = _proxima_data_valida(cursor_data, dias, bloqueadas, fim)
+        if prox is None:
+            conn.close()
+            raise ValueError(
+                "Não há datas suficientes no período da turma para empurrar as aulas. "
+                "Aumente a data fim da turma ou remarque para outra data."
+            )
+        novas_datas.append((row["id"], prox.isoformat()))
+        cursor_data = prox
+
+    # Atualiza de trás para frente (evita conflito de UNIQUE)
+    for aid, d in reversed(novas_datas):
+        conn.execute("UPDATE aulas SET data = ? WHERE id = ?", (d, aid))
+
+    # Por fim, coloca a aula movida na data escolhida
+    conn.execute("UPDATE aulas SET data = ? WHERE id = ?", (nova_data_str, aula_id))
+    conn.commit()
+    conn.close()
+
+    n = len(novas_datas)
+    return (
+        f"Aula movida para {nova_data_str}. "
+        f"{n} aula(s) seguinte(s) foram empurradas para frente."
+    )
