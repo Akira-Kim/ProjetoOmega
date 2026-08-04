@@ -1,6 +1,6 @@
 ================================================================================
   PLANEJAMENTO - GerenciadorDeTurmas
-  Atualizado em: 03/08/2026
+  Atualizado em: 04/08/2026
 ================================================================================
 
 OBJETIVO
@@ -66,64 +66,63 @@ CORES NO CALENDARIO
 
   Criterio: criar turmas, gerar aulas, eventos e remarcar. -> OK
 
-  Arquivos principais:
-  - models.py
-  - views/gerenciar.py
-  - database.py
-  - utils/calendar_helpers.py
-
 
 ================================================================================
   PARTE 3 - VISAO SEMANA (uso diario)
-  Status: [EM ANDAMENTO]
+  Status: [CONCLUIDA]
 ================================================================================
 
   [X] 3.1  Layout da semana navegavel (anterior / proxima / Hoje)
   [X] 3.2  Mostrar cards das aulas e eventos nos 7 dias, com as cores
   [X] 3.3  Indicadores no card (estudada, tem conteudo/link, dada)
-  [ ] 3.4  Clicar na aula -> abrir painel de detalhe
-  [ ] 3.5  No detalhe: marcar estudada / marcar dada
-  [ ] 3.6  No detalhe: editar conteudo e links da aula
-  [ ] 3.7  Ao marcar "dada", atalho para relatorio rapido da aula
+  [X] 3.4  Clicar na aula -> abrir painel de detalhe
+  [X] 3.5  No detalhe: marcar estudada / marcar dada
+  [X] 3.6  No detalhe: editar conteudo, links e observacao da aula
+  [X] 3.7  Relatorio rapido da aula no painel (salvar e ver na aba Relatorios)
+  [X] 3.8  Registrar nota / coins / analise por aluno no detalhe da aula
 
-  Criterio de conclusao: ver a semana e interagir com as aulas do dia.
-
-  >>> PROXIMO PASSO AGORA: 3.4 a 3.6 (painel de detalhe da aula)
+  Criterio de conclusao: ver a semana e interagir com as aulas do dia. -> OK
 
 
 ================================================================================
   PARTE 4 - VISAO MES
-  Status: [PENDENTE]
+  Status: [CONCLUIDA]
 ================================================================================
 
-  [ ] 4.1  Calendario mensal completo
-  [ ] 4.2  Indicadores resumidos por dia (qtd de aulas / bolinhas)
-  [ ] 4.3  Destaque visual de feriados, recessos e eventos
-  [ ] 4.4  Clique no dia -> resumo ou ir para a semana correspondente
-  [ ] 4.5  Filtros rapidos (opcional)
+  [X] 4.1  Calendario mensal completo (grade navegavel)
+  [X] 4.2  Indicadores resumidos por dia (bolinhas coloridas)
+  [X] 4.3  Destaque visual de feriados, recessos e eventos
+  [X] 4.4  Clique no dia -> resumo das aulas/eventos a direita
+  [ ] 4.5  Filtros rapidos (opcional - nao feito)
+
+  Criterio: visao mensal funcional e navegavel. -> OK (essencial)
 
 
 ================================================================================
   PARTE 5 - TURMAS + ALUNOS + ACOMPANHAMENTO
-  Status: ok
+  Status: [CONCLUIDA]
 ================================================================================
 
-  [ ] 5.1  Lista de turmas com quantidade de alunos
-  [ ] 5.2  Dentro da turma: adicionar, editar e desativar alunos
-  [ ] 5.3  Historico de notas e coins por aluno
-  [ ] 5.4  Em aula dada: formulario por aluno (nota do dia, coins, analise)
-  [ ] 5.5  Atualizar esses dados pelo relatorio, pelo Gerenciar e pela aba Turmas
+  [X] 5.1  Lista de turmas com quantidade de alunos
+  [X] 5.2  Dentro da turma: adicionar, editar nome e desativar alunos
+  [X] 5.3  Resumo por aluno (media de notas, total de coins, qtd registros)
+  [X] 5.4  Em detalhe da aula: formulario por aluno (nota, coins, analise)
+  [X] 5.5  Dados atualizam na aba Turmas apos salvar na Semana
+
+  Criterio: cadastrar alunos e registrar nota/coins/analise por aula. -> OK
 
 
 ================================================================================
   PARTE 6 - RELATORIOS DE AULA + HISTORICO
-  Status: [PENDENTE]
+  Status: [CONCLUIDA]
 ================================================================================
 
-  [ ] 6.1  Ao marcar aula como "dada", abrir formulario de relatorio
-  [ ] 6.2  Salvar relatorio vinculado a aula
-  [ ] 6.3  Aba Relatorios: historico com filtros (turma, data, aluno)
-  [ ] 6.4  Ver e editar relatorios depois
+  [X] 6.1  Campo e botao de relatorio no detalhe da aula (Semana)
+  [X] 6.2  Salvar relatorio vinculado a aula (e turma)
+  [X] 6.3  Aba Relatorios: historico com filtro por turma
+  [X] 6.4  Ver, editar e excluir relatorios depois
+
+  Criterio: relatorios de aula salvos e consultaveis. -> OK
 
 
 ================================================================================
@@ -153,29 +152,61 @@ CORES NO CALENDARIO
   [ ] 8.6  Validacoes e mensagens de erro amigaveis
   [ ] 8.7  Loading, snackbars, icones
   [ ] 8.8  Preparar estrutura para possivel venda no futuro
+  [ ] 8.9  Trocar ft.app por ft.run (aviso de deprecacao)
 
 
 ================================================================================
-  ORDEM RECOMENDADA
+  RESUMO DO PROGRESSO (04/08/2026)
 ================================================================================
 
-  1 [OK] -> 2 [OK] -> 3 [EM ANDAMENTO] -> 5 -> 6 -> 4 -> 7 -> 8
+  CONCLUIDO
+  ---------
+  Parte 1 - Fundacao
+  Parte 2 - Gerenciar (turmas, eventos, geracao e remarcacao de aulas)
+  Parte 3 - Visao Semana (grade, cores, detalhe, alunos, relatorio rapido)
+  Parte 4 - Visao Mes (calendario, bolinhas, resumo do dia)
+  Parte 5 - Turmas + Alunos + notas/coins/analise
+  Parte 6 - Relatorios de aula (criar, listar, filtrar, editar, excluir)
 
-  (A visao Mes fica depois da Semana, porque a Semana e o uso diario.)
+  PENDENTE
+  --------
+  Parte 7 - Relatorio do aluno com IA (modelo do usuario + IA online)
+  Parte 8 - Polimento e extras
+
+  PROGRESSO APROXIMADO: cerca de 75% do escopo funcional principal
 
 
 ================================================================================
-  ONDE ESTAMOS AGORA
+  ORDEM RECOMENDADA (atualizada)
 ================================================================================
 
-  FEITO:
-  - Parte 1 inteira
-  - Parte 2 inteira
-  - Parte 3 inicio (grade da semana com cores e navegacao)
+  1 [OK] -> 2 [OK] -> 3 [OK] -> 5 [OK] -> 6 [OK] -> 4 [OK] -> 7 [ ] -> 8 [ ]
 
-  FALTA AGORA:
-  - Parte 3.4 a 3.6: clicar na aula e abrir o detalhe
-    (marcar estudada / dada / editar conteudo)
+  Proximo passo: PARTE 7 (relatorio do aluno com IA)
+
+
+================================================================================
+  ARQUIVOS PRINCIPAIS DO PROJETO
+================================================================================
+
+  main.py
+  database.py
+  models.py
+  requirements.txt
+  PLANEJAMENTO.txt
+
+  utils/
+    calendar_helpers.py
+
+  views/
+    semana.py
+    mes.py
+    turmas.py
+    gerenciar.py
+    relatorios.py
+
+  data/
+    planner.db
 
 
 ================================================================================
@@ -184,9 +215,11 @@ CORES NO CALENDARIO
 
   - ft.alignment.center     ->  ft.Alignment(0, 0)
   - ft.border.all(...)      ->  ft.Border.all(...)
+  - Dropdown: nao aceita on_change no construtor; atribuir depois
   - page.call_later         ->  nao existe; carregar dados antes do return
   - ft.Colors.with_opacity  ->  pode falhar; usar cor fixa se necessario
-  - Banco: pasta data/ no PC do usuario; fallback /tmp em sandbox
+  - ft.app(target=main)     ->  preferir ft.run(main) (deprecacao 0.80+)
+  - Banco: pasta data/ no PC do usuario
 
 
 ================================================================================

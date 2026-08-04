@@ -1,6 +1,6 @@
 """
 views/semana.py - Visao semanal das aulas
-Parte 3 (completa com detalhe + alunos)
+Parte 3 (completa com detalhe + alunos + relatorio)
 """
 
 import flet as ft
@@ -100,10 +100,25 @@ def build_semana_view(page: ft.Page) -> ft.Control:
             min_lines=1,
             max_lines=3,
             text_size=13,
-            
         )
         cb_estudada = ft.Checkbox(label="Ja estudei", value=bool(aula.get("estudada")))
         cb_dada = ft.Checkbox(label="Aula dada", value=bool(aula.get("dada")))
+
+        # Relatorio SEMPRE criado (fora de qualquer if/else)
+        tf_relatorio = ft.TextField(
+            label="Texto do relatorio (o que rolou na aula)",
+            value="",
+            multiline=True,
+            min_lines=3,
+            max_lines=6,
+            text_size=13,
+        )
+        try:
+            existentes = listar_relatorios(tipo="aula", aula_id=aula_id)
+            if existentes:
+                tf_relatorio.value = existentes[0].get("conteudo") or ""
+        except Exception:
+            pass
 
         # ----- alunos -----
         alunos_col = ft.Column(spacing=6, scroll=ft.ScrollMode.AUTO)
@@ -167,21 +182,7 @@ def build_semana_view(page: ft.Page) -> ft.Control:
                         border=ft.Border.all(1, ft.Colors.GREY_800),
                         border_radius=6,
                     )
-                )        
-            tf_relatorio = ft.TextField(
-            label="Texto do relatorio (o que rolou na aula)",
-            multiline=True,
-            min_lines=3,
-            max_lines=6,
-            text_size=13,
-        )
-        # se ja existir relatorio desta aula, mostra o ultimo
-        try:
-            existentes = listar_relatorios(tipo="aula", aula_id=aula_id)
-            if existentes:
-                tf_relatorio.value = existentes[0].get("conteudo") or ""
-        except Exception:
-            pass
+                )
 
         def on_salvar_relatorio(e):
             try:
@@ -193,8 +194,6 @@ def build_semana_view(page: ft.Page) -> ft.Control:
                 mostrar_msg("Relatorio da aula salvo! Veja na aba Relatorios.")
             except Exception as ex:
                 mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
-                
-                
 
         def on_salvar(e):
             estudada = 1 if cb_estudada.value else 0
@@ -227,7 +226,6 @@ def build_semana_view(page: ft.Page) -> ft.Control:
                     )
                 mostrar_msg("Salvo! Clique de novo na aula para continuar editando.")
                 renderizar()
-                # nao reabre o painel sozinho (evita trava dos campos)
             except Exception as ex:
                 mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
 
