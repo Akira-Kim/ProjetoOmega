@@ -13,6 +13,8 @@ from models import (
     atualizar_aula,
     listar_alunos_com_registro,
     salvar_registro_aula,
+    criar_relatorio_aula,
+    listar_relatorios,
 )
 from utils.calendar_helpers import get_semana_atual
 
@@ -98,6 +100,7 @@ def build_semana_view(page: ft.Page) -> ft.Control:
             min_lines=1,
             max_lines=3,
             text_size=13,
+            
         )
         cb_estudada = ft.Checkbox(label="Ja estudei", value=bool(aula.get("estudada")))
         cb_dada = ft.Checkbox(label="Aula dada", value=bool(aula.get("dada")))
@@ -164,7 +167,34 @@ def build_semana_view(page: ft.Page) -> ft.Control:
                         border=ft.Border.all(1, ft.Colors.GREY_800),
                         border_radius=6,
                     )
+                )        
+            tf_relatorio = ft.TextField(
+            label="Texto do relatorio (o que rolou na aula)",
+            multiline=True,
+            min_lines=3,
+            max_lines=6,
+            text_size=13,
+        )
+        # se ja existir relatorio desta aula, mostra o ultimo
+        try:
+            existentes = listar_relatorios(tipo="aula", aula_id=aula_id)
+            if existentes:
+                tf_relatorio.value = existentes[0].get("conteudo") or ""
+        except Exception:
+            pass
+
+        def on_salvar_relatorio(e):
+            try:
+                criar_relatorio_aula(
+                    aula_id=aula_id,
+                    conteudo=tf_relatorio.value or "",
+                    turma_id=aula.get("turma_id"),
                 )
+                mostrar_msg("Relatorio da aula salvo! Veja na aba Relatorios.")
+            except Exception as ex:
+                mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
+                
+                
 
         def on_salvar(e):
             estudada = 1 if cb_estudada.value else 0
@@ -222,6 +252,14 @@ def build_semana_view(page: ft.Page) -> ft.Control:
                 tf_conteudo,
                 tf_links,
                 tf_obs,
+                ft.Divider(height=1),
+                ft.Text("Relatorio da aula", size=13, weight=ft.FontWeight.W_600),
+                tf_relatorio,
+                ft.OutlinedButton(
+                    "Salvar relatorio da aula",
+                    icon=ft.Icons.DESCRIPTION,
+                    on_click=on_salvar_relatorio,
+                ),
                 ft.Divider(height=1),
                 ft.Text("Alunos (nota / coins / analise)", size=13, weight=ft.FontWeight.W_600),
                 alunos_col,

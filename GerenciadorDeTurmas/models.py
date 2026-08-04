@@ -643,3 +643,95 @@ def listar_alunos_com_registro(aula_id: int, turma_id: int) -> list:
             "analise": reg.get("analise") or "",
         })
     return resultado
+
+# ============================================================
+# RELATORIOS
+# ============================================================
+
+def criar_relatorio_aula(
+    aula_id: int,
+    conteudo: str,
+    titulo: str = "",
+    turma_id: int = None,
+) -> int:
+    conteudo = (conteudo or "").strip()
+    if not conteudo:
+        raise ValueError("Relatorio vazio.")
+
+    aula = obter_aula(aula_id)
+    if turma_id is None and aula:
+        turma_id = aula["turma_id"]
+    if not titulo:
+        titulo = f"Relatorio aula {aula['data']}" if aula else "Relatorio de aula"
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO relatorios (tipo, aula_id, turma_id, titulo, conteudo)
+        VALUES ('aula', ?, ?, ?, ?)
+        """,
+        (aula_id, turma_id, titulo, conteudo),
+    )
+    rid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return rid
+
+def listar_relatorios(
+    tipo: str = None,
+    turma_id: int = None,
+    aula_id: int = None,
+) -> list:
+    conn = get_connection()
+    sql = "SELECT * FROM relatorios WHERE 1=1"
+    params = []
+    if tipo:
+        sql += " AND tipo = ?"
+        params.append(tipo)
+    if turma_id:
+        sql += " AND turma_id = ?"
+        params.append(turma_id)
+    if aula_id:
+        sql += " AND aula_id = ?"
+        params.append(aula_id)
+    sql += " ORDER BY data_geracao DESC"
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def obter_relatorio(relatorio_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM relatorios WHERE id = ?", (relatorio_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def atualizar_relatorio(relatorio_id: int, titulo: str = None, conteudo: str = None) -> None:
+    partes, valores = [], []
+    if titulo is not None:
+        partes.append("titulo = ?")
+        valores.append(titulo)
+    if conteudo is not None:
+        partes.append("conteudo = ?")
+        valores.append(conteudo)
+    if not partes:
+        return
+    valores.append(relatorio_id)
+    conn = get_connection()
+    conn.execute(
+        f"UPDATE relatorios SET {', '.join(partes)} WHERE id = ?",
+        valores,
+    )
+    conn.commit()
+    conn.close()
+
+
+def excluir_relatorio(relatorio_id: int) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM relatorios WHERE id = ?", (relatorio_id,))
+    conn.commit()
+    conn.close()

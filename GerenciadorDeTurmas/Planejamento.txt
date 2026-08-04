@@ -105,7 +105,7 @@ CORES NO CALENDARIO
 
 ================================================================================
   PARTE 5 - TURMAS + ALUNOS + ACOMPANHAMENTO
-  Status: [PENDENTE]
+  Status: ok
 ================================================================================
 
   [ ] 5.1  Lista de turmas com quantidade de alunos
