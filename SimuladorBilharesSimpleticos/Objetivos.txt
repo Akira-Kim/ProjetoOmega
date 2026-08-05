@@ -1,0 +1,151 @@
+ROTEIRO DO PROJETO — BILHARES SIMPLÉTICOS
+==========================================
+Objetivo: transformar o protótipo (1 arquivo, 500+ linhas) em software
+científico modular, com rigor numérico defensável e materiais
+exportáveis para portfólio, revisão da orientadora e publicação.
+
+Nota importante: o modelo aqui é bilhar SIMPLÉTICO, não o bilhar
+elástico/Birkhoff clássico. A colisão simplética não reflete pelo
+ângulo em relação à normal — o próximo ponto é definido por uma corda
+paralela à tangente no ponto anterior. O que esse modelo preserva é a
+forma simplética/área no espaço de pares de pontos consecutivos da
+fronteira, não "energia por reflexão especular". Isso afeta
+diretamente os testes de rigor da Fase 2.
+
+Critério que guia toda decisão técnica daqui pra frente:
+  - Visualização em tempo real: precisa parecer boa, não precisa ser
+    a mais rápida possível.
+  - Dados/resultados (relatórios, mapas de calor, gráficos, vídeos):
+    têm que ser numericamente rigorosos e reprodutíveis, sem exceção.
+
+
+FASE 1 — MODULARIZAÇÃO (em andamento)
+---------------------------------------
+Status: core/ concluído e testado (curva.py, estado.py, fisica.py,
+simulador.py). Falta:
+
+  [ ] visualizacao/figura.py    — criação de fig, eixos, artistas
+  [ ] visualizacao/widgets.py   — sliders, botões, radio, textboxes
+  [ ] visualizacao/callbacks.py — funções de evento (reset, iniciar,
+                                   atualizar_curva, etc.)
+  [ ] visualizacao/animacao.py  — init()/update(frame), chamando
+                                   core.simulador.step() e aplicando
+                                   os eventos retornados aos artistas
+  [ ] main.py                   — só monta tudo e chama plt.show()
+  [ ] mover o heatmap para fora de EstadoBilhar (hoje é um artista de
+      matplotlib guardado dentro do estado — remendo temporário da
+      Fase 1, resolvido aqui)
+
+Critério de pronto: rodar main.py deve se comportar exatamente igual
+ao arquivo único original. Nenhuma mudança de comportamento nesta
+fase, só de organização.
+
+
+FASE 2 — RIGOR E EXTENSIBILIDADE MATEMÁTICA/FÍSICA
+------------------------------------------------------
+Aqui entra a generalização que sustenta a alegação de originalidade
+("primeira simulação visual de bilhares simpléticos"):
+
+  [ ] Definir a interface Curva (contrato): equação, tangente, normal,
+      interseção — que tanto fórmula fechada quanto método genérico
+      precisam implementar, para serem intercambiáveis
+  [ ] Manter fórmula fechada para Círculo/Elipse (rápido, auditável)
+  [ ] Adicionar caminho genérico via SymPy (derivação simbólica de
+      tangente/normal) + SciPy (root-finding para interseção) para
+      curvas sem solução fechada (cardioide, superelipse, curvas
+      definidas por equação arbitrária)
+  [ ] Cada colisão registra qual método foi usado e o erro residual
+      da interseção — isso é o que te permite defender rigor numérico
+      quando alguém perguntar "como você garante que está correto?"
+  [ ] Suíte de testes com pytest:
+        - modo Elástico: conservação de velocidade/energia após cada
+          colisão
+        - modo Simplético: preservação de área do mapa de retorno
+          (determinante do jacobiano do mapa simplético ≈ 1) — esse é
+          o invariante que realmente caracteriza bilhar simplético,
+          não conservação de energia
+        - caso analítico conhecido (círculo) como oráculo de
+          comparação
+        - comparação fórmula fechada vs. método genérico na elipse
+          (têm que bater dentro de uma tolerância)
+        - colisão quase-tangente (caso de borda que mais quebra
+          precisão numérica)
+
+
+FASE 3 — CAMADA DE ANÁLISE / DADOS CIENTÍFICOS
+--------------------------------------------------
+Separada da visualização interativa — roda em lote (headless), sem
+depender de clicar em nada:
+
+  [ ] analysis/runner.py — roda N trajetórias/colisões dado um
+      conjunto de parâmetros (curva, modo, condição inicial, semente
+      aleatória se houver)
+  [ ] Metadados obrigatórios em cada execução: parâmetros de entrada,
+      curva, modo, semente, método de interseção usado, versão do
+      código (hash do git), timestamp — isso é o que garante
+      reprodutibilidade exigível em pesquisa
+  [ ] analysis/exportacao_dados.py — salvar resultados em:
+        - CSV (leitura universal)
+        - Parquet (para datasets grandes, mapas de calor com muitas
+          colisões)
+  [ ] analysis/relatorio.py — gerar relatório científico automático:
+        - parâmetros usados
+        - gráficos (espaço de fase, mapa de calor) gerados por script
+          (não capturados da tela interativa — reprodutíveis)
+        - estatísticas: energia/velocidade conservada, nº de
+          colisões, distribuição de ângulos
+      Formato de saída: PDF (usando a lib de geração de PDF) e/ou
+      Markdown+imagens
+
+
+FASE 4 — EXPORTAÇÃO EM MÚLTIPLOS FORMATOS
+----------------------------------------------
+Do instante único até o vídeo completo:
+
+  Imagem de um instante:
+    [ ] PNG — divulgação rápida, portfólio
+    [ ] SVG — vetorial, para editar/ampliar sem perda (bom pra artigo)
+    [ ] PDF de uma figura — para anexar em relatório/paper
+
+  Sessão/estado:
+    [ ] Salvar sessão (parâmetros + estado atual) em JSON, para
+        retomar depois exatamente de onde parou
+    [ ] Carregar sessão
+
+  Dados brutos:
+    [ ] CSV / Parquet (trajetória, colisões, ângulos) — já coberto na
+        Fase 3
+
+  Vídeo da simulação:
+    [ ] Exportar MP4 (matplotlib FuncAnimation.save com ffmpeg) —
+        para apresentações, portfólio, redes
+    [ ] Exportar GIF — para README do GitHub, compartilhamento rápido
+    [ ] (opcional, mais adiante) animação estilo 3Blue1Brown via
+        Manim, só se for investir em material de divulgação mais
+        elaborado
+
+  Relatório completo:
+    [ ] PDF final juntando: imagem do instante, mapa de calor, gráfico
+        de espaço de fase, estatísticas e metadados de
+        reprodutibilidade (Fase 3)
+
+
+FASE 5 — POLIMENTO PARA PORTFÓLIO/PUBLICAÇÃO
+--------------------------------------------------
+  [ ] README.md do projeto: o que é, motivação, como rodar, exemplos
+      de saída (imagem + link do vídeo)
+  [ ] Documentação básica (docstrings já estruturadas nos módulos
+      desde a Fase 1 ajudam aqui)
+  [ ] requirements.txt / pyproject.toml
+  [ ] Repositório no GitHub organizado (estrutura de pastas já pronta
+      desde a Fase 1)
+  [ ] (opcional) empacotar como biblioteca instalável via pip, se
+      fizer sentido para reforçar "framework reutilizável" e não só
+      "script de simulação"
+
+
+ORDEM RECOMENDADA
+--------------------
+1 → 2 → 3 → 4 → 5, mas 4 (exportação de imagem/PNG simples) pode ser
+adiantada logo após a Fase 1, porque é barata e já dá algo visual
+para mostrar enquanto o resto avança.
