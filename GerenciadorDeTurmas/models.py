@@ -735,3 +735,122 @@ def excluir_relatorio(relatorio_id: int) -> None:
     conn.execute("DELETE FROM relatorios WHERE id = ?", (relatorio_id,))
     conn.commit()
     conn.close()
+
+def listar_historico_aluno(aluno_id: int) -> list:
+    """Registros do aluno com data e turma da aula."""
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT
+            r.id AS registro_id,
+            r.nota_dia,
+            r.coins,
+            r.analise,
+            r.data_registro,
+            a.id AS aula_id,
+            a.data AS data_aula,
+            a.status AS status_aula,
+            t.nome AS turma_nome
+        FROM registros_aula r
+        JOIN aulas a ON a.id = r.aula_id
+        JOIN turmas t ON t.id = a.turma_id
+        WHERE r.aluno_id = ?
+        ORDER BY a.data DESC
+        """,
+        (aluno_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def obter_aluno(aluno_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM alunos WHERE id = ?", (aluno_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def montar_contexto_aluno(aluno_id: int) -> str:
+    """Texto com dados do aluno para colar no prompt da IA."""
+    aluno = obter_aluno(aluno_id)
+    if not aluno:
+        raise ValueError("Aluno nao encontrado.")
+
+    resumo = obter_resumo_aluno(aluno_id)
+    historico = listar_historico_aluno(aluno_id)
+    turma = obter_turma(aluno["turma_id"]) if aluno.get("turma_id") else None
+
+    media = resumo["media_notas"]
+    media_txt = f"{media:.2f}" if media is not None else "sem notas"
+    linhas = [
+        f"Nome: {aluno.get('nome')}",
+        f"Turma: {turma.get('nome') if turma else '—'}",
+        f"Disciplina: {turma.get('disciplina') if turma else '—'}",
+        f"Observacao geral do aluno: {aluno.get('observacao') or '—'}",
+        f"Media de notas: {media_txt}",
+        f"Total de coins: {resumo['total_coins']}",
+        f"Quantidade de registros (aulas com lancamento): {resumo['qtd_registros']}",
+        "",
+        "Historico aula a aula (mais recente primeiro):",
+    ]
+    if not historico:
+        linhas.append("  (nenhum registro)")
+    else:
+        for h in historico:
+            nota = h["nota_dia"] if h["nota_dia"] is not None else "—"
+            coins = h.get("coins") if h.get("coins") is not None else 0
+            analise = (h.get("analise") or "").strip() or "—"
+            linhas.append(
+                f"  - Data {h['data_aula']} | nota={nota} | coins={coins} | "
+                f"status={h.get('status_aula') or '—'} | analise: {analise}"
+            )
+    return "\n".join(linhas)
+
+
+def montar_prompt_relatorio(modelo: str, contexto_aluno: str) -> str:
+    """
+    Se o modelo tiver {{dados}}, substitui.
+    Senao, anexa os dados no final.
+    """
+    modelo = (modelo or "").strip()
+    if "{{dados}}" in modelo:
+        return modelo.replace("{{dados}}", contexto_aluno)
+    return (
+        f"{modelo}\n\n"
+        f"--- DADOS DO ALUNO ---\n"
+        f"{contexto_aluno}\n"
+        f"--- FIM DOS DADOS ---\n"
+    )
+
+
+def criar_relatorio_aluno(
+    aluno_id: int,
+    conteudo: str,
+    titulo: str = "",
+    modelo_usado: str = "",
+    turma_id: int = None,
+) -> int:
+    conteudo = (conteudo or "").strip()
+    if not conteudo:
+        raise ValueError("Relatorio vazio.")
+    aluno = obter_aluno(aluno_id)
+    if turma_id is None and aluno:
+        turma_id = aluno.get("turma_id")
+    if not titulo:
+        nome = aluno.get("nome") if aluno else "aluno"
+        titulo = f"Relatorio do aluno — {nome}"
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO relatorios (tipo, aluno_id, turma_id, titulo, conteudo, modelo_usado)
+        VALUES ('aluno', ?, ?, ?, ?, ?)
+        """,
+        (aluno_id, turma_id, titulo, conteudo, modelo_usado or ""),
+    )
+    rid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return rid
