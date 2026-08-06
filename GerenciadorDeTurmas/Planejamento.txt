@@ -1,225 +1,80 @@
 ================================================================================
   PLANEJAMENTO - GerenciadorDeTurmas
-  Atualizado em: 04/08/2026
+  Atualizado em: 06/08/2026
 ================================================================================
 
-OBJETIVO
---------
-App desktop (Flet + SQLite) para planejar aulas, com calendario oficial,
-turmas recorrentes, status de estudo/aula dada, alunos, notas, coins e
-relatorios com IA.
-
-TECNOLOGIA
-----------
-- Flet (interface)
-- SQLite (banco local)
-- holidays (feriados oficiais BR)
-- httpx (futuro: IA online)
-
-REGRAS DEFINIDAS
-----------------
-- Feriado/recesso: aula e pulada na geracao.
-- Remarcar para data ocupada: empurra a aula conflitante e todas as
-  seguintes uma ocorrencia para frente (proximo dia valido da turma).
-- Remanejamento manual sempre disponivel.
-
-CORES NO CALENDARIO
--------------------
-- Verde   = aula dada
-- Amarelo = aula desta semana ainda nao dada
-- Cinza   = passou e nao foi dada
-- Claro   = futuras
-- Roxo    = feriado / recesso / evento
-- Laranja = reposicao / monitoria
+VERSAO ATUAL: 1.0 (em uso real) — tag Git: v1.0
+PROXIMA VERSAO: 1.1 (polimento e extras)
 
 
 ================================================================================
-  PARTE 1 - FUNDACAO
+  VERSAO 1.0 — NUCLEO FUNCIONAL
   Status: [CONCLUIDA]
 ================================================================================
 
-  [X] 1.1  Criar pasta e estrutura (views, utils, components, data)
-  [X] 1.2  requirements.txt (flet, pillow, holidays, httpx...)
-  [X] 1.3  database.py com todas as tabelas
-  [X] 1.4  Integracao com feriados oficiais do Brasil (holidays)
-  [X] 1.5  utils/calendar_helpers.py (semana, mes, gerar datas, parse dias)
-  [X] 1.6  main.py com menu lateral e 5 abas
-  [X] 1.7  Views esqueleto (Semana, Mes, Turmas, Gerenciar, Relatorios)
-
-  Criterio: app abre, 5 abas funcionam, banco e criado. -> OK
-
-
-================================================================================
-  PARTE 2 - GERENCIAR (coracao do sistema)
-  Status: [CONCLUIDA]
-================================================================================
-
-  [X] 2.1  Listar turmas cadastradas
-  [X] 2.2  Formulario de criar turma (nome, disciplina, dias, inicio/fim)
-  [X] 2.3  Salvar turma no banco
-  [X] 2.4  Gerar aulas automaticamente no periodo (pulando feriados oficiais)
-  [X] 2.5  Cadastrar eventos (feriado, recesso, evento, reposicao, monitoria)
-           + regenerar aulas ao salvar feriado/recesso
-  [X] 2.6  Clicar na turma -> ver lista de aulas + remarcar data
-  [X] 2.7  Se remarcar para data ja ocupada -> empurrar aulas seguintes
-  [X] 2.8  Excluir turma e excluir evento
-
-  Criterio: criar turmas, gerar aulas, eventos e remarcar. -> OK
+  [X] Parte 1 - Fundacao
+  [X] Parte 2 - Gerenciar (turmas, eventos, aulas, remarcar, backup)
+  [X] Parte 3 - Visao Semana
+  [X] Parte 4 - Visao Mes
+  [X] Parte 5 - Turmas + alunos + historico
+  [X] Parte 6 - Relatorios de aula
+  [X] Parte 7 - Relatorio do aluno (Gemini + modelo + fallback de cota)
+  [X] Documentacao docs/VERSAO_1.0.md
+  [X] Tag Git v1.0
 
 
 ================================================================================
-  PARTE 3 - VISAO SEMANA (uso diario)
-  Status: [CONCLUIDA]
+  VERSAO 1.1 — POLIMENTO E EXTRAS (secundario / estetico)
+  Status: [PLANEJADA]
 ================================================================================
 
-  [X] 3.1  Layout da semana navegavel (anterior / proxima / Hoje)
-  [X] 3.2  Mostrar cards das aulas e eventos nos 7 dias, com as cores
-  [X] 3.3  Indicadores no card (estudada, tem conteudo/link, dada)
-  [X] 3.4  Clicar na aula -> abrir painel de detalhe
-  [X] 3.5  No detalhe: marcar estudada / marcar dada
-  [X] 3.6  No detalhe: editar conteudo, links e observacao da aula
-  [X] 3.7  Relatorio rapido da aula no painel (salvar e ver na aba Relatorios)
-  [X] 3.8  Registrar nota / coins / analise por aluno no detalhe da aula
+  Visual e UX
+  [ ] 1.1.1  Hierarquia visual (tipografia, espacamento, cards)
+  [ ] 1.1.2  Tema claro/escuro mais consistente
+  [ ] 1.1.3  Icones e estados de loading / snackbar
+  [ ] 1.1.4  Mensagens de erro mais amigaveis em todos os fluxos
 
-  Criterio de conclusao: ver a semana e interagir com as aulas do dia. -> OK
+  Produtividade
+  [ ] 1.1.5  Atalhos e navegacao Semana <-> Mes mais fluida
+  [ ] 1.1.6  Filtros rapidos no Mes (opcional)
+  [ ] 1.1.7  File picker estavel para modelo (alem do caminho manual)
 
+  Exportacao e midia
+  [ ] 1.1.8  Exportar relatorio (Markdown / PDF)
+  [ ] 1.1.9  Anexar / visualizar imagens nas aulas (se fizer sentido)
 
-================================================================================
-  PARTE 4 - VISAO MES
-  Status: [CONCLUIDA]
-================================================================================
+  Configuracao
+  [ ] 1.1.10 Tela simples de configuracoes (tema, modelo Gemini, ano letivo)
+  [ ] 1.1.11 Restaurar backup pela interface
 
-  [X] 4.1  Calendario mensal completo (grade navegavel)
-  [X] 4.2  Indicadores resumidos por dia (bolinhas coloridas)
-  [X] 4.3  Destaque visual de feriados, recessos e eventos
-  [X] 4.4  Clique no dia -> resumo das aulas/eventos a direita
-  [ ] 4.5  Filtros rapidos (opcional - nao feito)
-
-  Criterio: visao mensal funcional e navegavel. -> OK (essencial)
+  Qualidade
+  [ ] 1.1.12 Revisar textos da UI (acentos, labels)
+  [ ] 1.1.13 Testes manuais documentados (checklist de regressao)
 
 
 ================================================================================
-  PARTE 5 - TURMAS + ALUNOS + ACOMPANHAMENTO
-  Status: [CONCLUIDA]
+  FUTURO (1.2+ / ideias)
 ================================================================================
 
-  [X] 5.1  Lista de turmas com quantidade de alunos
-  [X] 5.2  Dentro da turma: adicionar, editar nome e desativar alunos
-  [X] 5.3  Resumo por aluno (media de notas, total de coins, qtd registros)
-  [X] 5.4  Em detalhe da aula: formulario por aluno (nota, coins, analise)
-  [X] 5.5  Dados atualizam na aba Turmas apos salvar na Semana
-
-  Criterio: cadastrar alunos e registrar nota/coins/analise por aula. -> OK
+  [ ] Integracao Maria (IA propria no lugar do Gemini)
+  [ ] Multi-professor / assinatura (se for vender)
+  [ ] Sincronizacao ou backup em nuvem (opcional)
 
 
 ================================================================================
-  PARTE 6 - RELATORIOS DE AULA + HISTORICO
-  Status: [CONCLUIDA]
+  COMO VERSIONAR NO GIT
 ================================================================================
 
-  [X] 6.1  Campo e botao de relatorio no detalhe da aula (Semana)
-  [X] 6.2  Salvar relatorio vinculado a aula (e turma)
-  [X] 6.3  Aba Relatorios: historico com filtro por turma
-  [X] 6.4  Ver, editar e excluir relatorios depois
+  Release:
+    git add .
+    git commit -m "Release v1.0: ..."
+    git tag -a v1.0 -m "Versao 1.0"
+    git push origin main
+    git push origin v1.0
 
-  Criterio: relatorios de aula salvos e consultaveis. -> OK
-
-
-================================================================================
-  PARTE 7 - RELATORIO DO ALUNO COM IA
-  Status: [PENDENTE]
-================================================================================
-
-  [ ] 7.1  Secao "Gerar relatorio do aluno" na aba Relatorios
-  [ ] 7.2  Escolher turma e aluno
-  [ ] 7.3  Usuario sobe arquivo de modelo (.txt / .md) pelo file picker
-  [ ] 7.4  App monta os dados (notas, coins, % aulas, feedbacks)
-  [ ] 7.5  Envia para IA gratuita online (Groq / Gemini / OpenRouter)
-  [ ] 7.6  Mostra e salva o relatorio gerado
-  [ ] 7.7  Futuro: trocar a IA por Maria
-
-
-================================================================================
-  PARTE 8 - POLIMENTO E EXTRAS
-  Status: [PENDENTE]
-================================================================================
-
-  [ ] 8.1  Visual mais bonito (cores, tipografia, espacamentos, dark/light)
-  [ ] 8.2  Miniaturas de imagens nas aulas
-  [ ] 8.3  Exportar relatorio (PDF / Markdown)
-  [ ] 8.4  Backup e restauracao do banco
-  [ ] 8.5  Tela de configuracoes (ano letivo, chave da IA, tema)
-  [ ] 8.6  Validacoes e mensagens de erro amigaveis
-  [ ] 8.7  Loading, snackbars, icones
-  [ ] 8.8  Preparar estrutura para possivel venda no futuro
-  [ ] 8.9  Trocar ft.app por ft.run (aviso de deprecacao)
-
-
-================================================================================
-  RESUMO DO PROGRESSO (04/08/2026)
-================================================================================
-
-  CONCLUIDO
-  ---------
-  Parte 1 - Fundacao
-  Parte 2 - Gerenciar (turmas, eventos, geracao e remarcacao de aulas)
-  Parte 3 - Visao Semana (grade, cores, detalhe, alunos, relatorio rapido)
-  Parte 4 - Visao Mes (calendario, bolinhas, resumo do dia)
-  Parte 5 - Turmas + Alunos + notas/coins/analise
-  Parte 6 - Relatorios de aula (criar, listar, filtrar, editar, excluir)
-
-  PENDENTE
-  --------
-  Parte 7 - Relatorio do aluno com IA (modelo do usuario + IA online)
-  Parte 8 - Polimento e extras
-
-  PROGRESSO APROXIMADO: cerca de 75% do escopo funcional principal
-
-
-================================================================================
-  ORDEM RECOMENDADA (atualizada)
-================================================================================
-
-  1 [OK] -> 2 [OK] -> 3 [OK] -> 5 [OK] -> 6 [OK] -> 4 [OK] -> 7 [ ] -> 8 [ ]
-
-  Proximo passo: PARTE 7 (relatorio do aluno com IA)
-
-
-================================================================================
-  ARQUIVOS PRINCIPAIS DO PROJETO
-================================================================================
-
-  main.py
-  database.py
-  models.py
-  requirements.txt
-  PLANEJAMENTO.txt
-
-  utils/
-    calendar_helpers.py
-
-  views/
-    semana.py
-    mes.py
-    turmas.py
-    gerenciar.py
-    relatorios.py
-
-  data/
-    planner.db
-
-
-================================================================================
-  OBSERVACOES TECNICAS (Flet 0.86+)
-================================================================================
-
-  - ft.alignment.center     ->  ft.Alignment(0, 0)
-  - ft.border.all(...)      ->  ft.Border.all(...)
-  - Dropdown: nao aceita on_change no construtor; atribuir depois
-  - page.call_later         ->  nao existe; carregar dados antes do return
-  - ft.Colors.with_opacity  ->  pode falhar; usar cor fixa se necessario
-  - ft.app(target=main)     ->  preferir ft.run(main) (deprecacao 0.80+)
-  - Banco: pasta data/ no PC do usuario
+  Proxima release (exemplo):
+    git tag -a v1.1 -m "Versao 1.1 - polimento"
+    git push origin v1.1
 
 
 ================================================================================

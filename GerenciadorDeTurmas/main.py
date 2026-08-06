@@ -1,8 +1,9 @@
 """
 GerenciadorDeTurmas - main.py
 Ponto de entrada do aplicativo.
-Parte 1: Fundação (navegação + banco)
 """
+
+from pathlib import Path
 
 import flet as ft
 from database import inicializar_banco
@@ -11,10 +12,11 @@ from views.mes import build_mes_view
 from views.turmas import build_turmas_view
 from views.gerenciar import build_gerenciar_view
 from views.relatorios import build_relatorios_view
+from utils.theme import aplicar_tema, COR_PRIMARIA
 
 
 def main(page: ft.Page):
-    # --- Configurações da janela ---
+    # --- Configuracoes da janela ---
     page.title = "Gerenciador de Turmas"
     page.theme_mode = ft.ThemeMode.SYSTEM
     page.padding = 0
@@ -23,14 +25,25 @@ def main(page: ft.Page):
     page.window.width = 1100
     page.window.height = 700
 
+    # Icone da janela (PNG ou ICO na pasta assets)
+    base = Path(__file__).resolve().parent
+    for nome in ("icone.png", "icone.ico"):
+        caminho = base / "assets" / nome
+        if caminho.exists():
+            page.window.icon = str(caminho)
+            break
+
+        aplicar_tema(page)
+
     # Inicializa o banco de dados
     inicializar_banco()
 
-    # --- Conteúdo de cada aba ---
+    # --- Conteudo de cada aba ---
     content_area = ft.Container(
         content=build_semana_view(page),
         expand=True,
-        padding=20,
+        padding=24,
+        bgcolor="#121218",
     )
 
     def trocar_aba(e):
@@ -51,9 +64,12 @@ def main(page: ft.Page):
     rail = ft.NavigationRail(
         selected_index=0,
         label_type=ft.NavigationRailLabelType.ALL,
-        min_width=80,
-        min_extended_width=180,
+        min_width=88,
+        min_extended_width=190,
         group_alignment=-0.9,
+        bgcolor="#16161F",
+        indicator_color=COR_PRIMARIA,
+        selected_label_text_style=ft.TextStyle(color=COR_PRIMARIA, weight=ft.FontWeight.W_600),
         destinations=[
             ft.NavigationRailDestination(
                 icon=ft.Icons.CALENDAR_VIEW_WEEK_OUTLINED,
@@ -63,7 +79,7 @@ def main(page: ft.Page):
             ft.NavigationRailDestination(
                 icon=ft.Icons.CALENDAR_MONTH_OUTLINED,
                 selected_icon=ft.Icons.CALENDAR_MONTH,
-                label="Mês",
+                label="Mes",
             ),
             ft.NavigationRailDestination(
                 icon=ft.Icons.GROUPS_OUTLINED,
@@ -78,7 +94,7 @@ def main(page: ft.Page):
             ft.NavigationRailDestination(
                 icon=ft.Icons.DESCRIPTION_OUTLINED,
                 selected_icon=ft.Icons.DESCRIPTION,
-                label="Relatórios",
+                label="Relatorios",
             ),
         ],
         on_change=trocar_aba,
