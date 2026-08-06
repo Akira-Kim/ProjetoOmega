@@ -29,15 +29,10 @@ def carregar_chave_gemini() -> str:
 
 
 def gerar_com_gemini(prompt: str, timeout: float = 60.0) -> str:
-    """Envia o prompt ao Gemini e devolve o texto gerado."""
+    """Envia o prompt ao Gemini. Em caso de cota/erro, levanta RuntimeError com texto claro."""
     chave = carregar_chave_gemini()
     payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}],
-            }
-        ],
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.4,
             "maxOutputTokens": 4096,
@@ -50,8 +45,21 @@ def gerar_com_gemini(prompt: str, timeout: float = 60.0) -> str:
             json=payload,
             headers={"Content-Type": "application/json"},
         )
+
+        if r.status_code == 429:
+            raise RuntimeError(
+                "Cota gratuita do Gemini esgotada (HTTP 429). "
+                "Use 'Ver so os dados', aguarde o reset da cota, "
+                "troque o modelo em ai_client.py ou use outra API key."
+            )
+        if r.status_code == 403:
+            raise RuntimeError(
+                "Acesso negado (HTTP 403). Confira a API key em keys/gemini_key.txt "
+                "e se a Generative Language API esta ativa no Google AI Studio."
+            )
         if r.status_code != 200:
-            raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:500]}")
+            raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:400]}")
+
         data = r.json()
 
     try:

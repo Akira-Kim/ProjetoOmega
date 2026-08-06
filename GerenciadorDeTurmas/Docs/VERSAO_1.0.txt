@@ -1,0 +1,134 @@
+================================================================================
+  GerenciadorDeTurmas — VERSAO 1.0
+  Data de referencia: 06/08/2026
+================================================================================
+
+STATUS
+------
+Versao 1.0 em uso real para planejamento e acompanhamento de aulas.
+Nucleo funcional concluido. Polimento estetico e extras ficam para a 1.1+.
+
+
+O QUE E ESTE APP
+----------------
+Aplicativo desktop (Python + Flet + SQLite) para o professor:
+  - planejar aulas no calendario
+  - gerenciar turmas recorrentes
+  - registrar estudo, aula dada, notas, coins e analises
+  - gerar relatorios de aula e de aluno (com Gemini, quando a cota permitir)
+
+
+STACK
+-----
+  - Python 3.11+
+  - Flet (interface)
+  - SQLite (banco local em data/planner.db)
+  - holidays (feriados oficiais BR)
+  - httpx (chamadas ao Gemini)
+  - python-docx (ler modelos .docx)
+
+
+FUNCIONALIDADES DA 1.0
+----------------------
+
+1) Fundacao
+   - Menu lateral com 5 abas: Semana, Mes, Turmas, Gerenciar, Relatorios
+   - Banco com turmas, aulas, eventos, alunos, registros_aula, relatorios
+   - Calendario oficial BR (feriados)
+
+2) Gerenciar
+   - Criar turma (nome, disciplina, dias, inicio/fim)
+   - Geracao automatica de aulas no periodo (pula feriado/recesso)
+   - Eventos: feriado, recesso, evento, reposicao, monitoria
+   - Regenerar aulas ao cadastrar feriado/recesso
+   - Listar aulas da turma e remarcar data
+   - Conflito de data: empurra aulas seguintes
+   - Excluir turma e evento
+   - Backup do banco (data/backups/)
+
+3) Semana
+   - Grade navegavel (anterior / proxima / Hoje)
+   - Cores: dada=verde, semana=amarelo, passou=cinza, futura=clara
+   - Eventos roxo / reposicao-monitoria laranja
+   - Painel de detalhe: estudada, dada, conteudo, links, observacao
+   - Nota / coins / analise por aluno
+   - Relatorio rapido da aula
+
+4) Mes
+   - Calendario mensal com bolinhas por dia
+   - Clique no dia: resumo de aulas e eventos
+
+5) Turmas
+   - Lista de turmas com quantidade de alunos
+   - Editar nome e disciplina da turma
+   - Adicionar / editar / desativar alunos
+   - Ficha do aluno: media, coins totais, historico aula a aula editavel
+
+6) Relatorios
+   - Historico de relatorios de aula e de aluno
+   - Filtro por tipo / turma
+   - Editar e excluir
+   - Gerar relatorio do aluno:
+       * escolher turma e carregar alunos
+       * modelo via caminho de arquivo (.txt / .md / .docx)
+       * montar contexto automatico
+       * Gemini (keys/gemini_key.txt, fora do Git)
+       * fallback/rascunho se a API falhar (cota 429 etc.)
+       * salvar relatorio tipo aluno
+
+
+REGRAS DE NEGOCIO
+-----------------
+  - Feriado/recesso: aula nao e gerada naquele dia
+  - Remarcar para data ocupada: empurra a conflitante e as seguintes
+  - Coins totais do aluno = soma dos registros por aula
+  - Chave Gemini em keys/ (nao versionada)
+
+
+CORES NO CALENDARIO
+-------------------
+  Verde   = aula dada
+  Amarelo = aula desta semana ainda nao dada
+  Cinza   = passou e nao foi dada
+  Claro   = futuras
+  Roxo    = feriado / recesso / evento
+  Laranja = reposicao / monitoria
+
+
+ESTRUTURA DE PASTAS (resumo)
+----------------------------
+  main.py
+  database.py
+  models.py
+  requirements.txt
+  PLANEJAMENTO.txt
+  docs/VERSAO_1.0.md
+  keys/gemini_key.txt      (local, no .gitignore)
+  data/planner.db
+  data/backups/
+  utils/calendar_helpers.py
+  utils/ai_client.py
+  utils/backup.py
+  views/semana.py, mes.py, turmas.py, gerenciar.py, relatorios.py
+
+
+COMO RODAR
+----------
+  pip install -r requirements.txt
+  python main.py
+  (preferencia: ft.run(main) no main.py)
+
+
+LIMITACOES CONHECIDAS DA 1.0
+----------------------------
+  - Visual ainda funcional, nao polido
+  - Cota gratuita do Gemini pode retornar HTTP 429
+  - Sem exportacao PDF
+  - Sem imagens nas aulas
+  - Sem multi-usuario / assinatura
+  - Integracao Maria ainda nao
+
+
+================================================================================
+  FIM — VERSAO 1.0
+================================================================================

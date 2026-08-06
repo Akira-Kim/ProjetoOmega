@@ -345,7 +345,22 @@ def build_relatorios_view(page: ft.Page) -> ft.Control:
             tf_resultado.update()
             tf_titulo_g.update()
             mostrar_msg("Relatorio gerado! Revise e salve se quiser.")
+            
         except Exception as ex:
+            # fallback: mostra dados + modelo, sem IA
+            try:
+                modelo = ler_arquivo_modelo(estado["modelo_path"])
+                contexto = montar_contexto_aluno(estado["aluno_id"])
+                rascunho = (
+                    f"[RASCUNHO SEM IA — Gemini indisponivel]\n"
+                    f"Motivo: {ex}\n\n"
+                    f"--- MODELO ---\n{modelo}\n\n"
+                    f"--- DADOS DO ALUNO ---\n{contexto}\n"
+                )
+                tf_resultado.value = rascunho
+                tf_resultado.update()
+            except Exception:
+                pass
             mostrar_msg(f"Erro na geracao: {ex}", ft.Colors.RED_400)
 
     def on_salvar_gerado(e):

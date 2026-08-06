@@ -1,6 +1,5 @@
 """
-views/gerenciar.py - Cadastro de turmas, eventos e aulas
-Parte 2 (completa até 2.6)
+views/gerenciar.py - Cadastro de turmas, eventos, aulas e backup
 """
 
 import flet as ft
@@ -17,24 +16,21 @@ from models import (
     regenerar_todas_turmas_ativas,
     remarcar_aula,
 )
-from database import get_connection
 from utils.calendar_helpers import dias_semana_para_texto, parse_dias_semana
+from utils.backup import fazer_backup
 
 
 def build_gerenciar_view(page: ft.Page) -> ft.Control:
-    # ---------- áreas dinâmicas ----------
     lista_turmas_col = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
     lista_eventos_col = ft.Column(spacing=6, scroll=ft.ScrollMode.AUTO, height=180)
     painel_aulas = ft.Column(spacing=6, scroll=ft.ScrollMode.AUTO, expand=True)
     mensagem = ft.Text("", size=13)
 
-    turma_selecionada_id = {"id": None}  # usa dict para mutar dentro de closures
+    turma_selecionada_id = {"id": None}
 
-    # =========================================================
-    # FORMULÁRIO DE TURMA
-    # =========================================================
+    # ---------- formulario turma ----------
     tf_nome = ft.TextField(label="Nome da turma", width=260)
-    tf_disciplina = ft.TextField(label="Disciplina / Matéria", width=260)
+    tf_disciplina = ft.TextField(label="Disciplina / Materia", width=260)
 
     dias_checks = {
         0: ft.Checkbox(label="Seg", value=False),
@@ -42,12 +38,12 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         2: ft.Checkbox(label="Qua", value=False),
         3: ft.Checkbox(label="Qui", value=False),
         4: ft.Checkbox(label="Sex", value=False),
-        5: ft.Checkbox(label="Sáb", value=False),
+        5: ft.Checkbox(label="Sab", value=False),
         6: ft.Checkbox(label="Dom", value=False),
     }
 
     tf_inicio = ft.TextField(
-        label="Início (AAAA-MM-DD)",
+        label="Inicio (AAAA-MM-DD)",
         width=160,
         value=date.today().isoformat(),
     )
@@ -57,10 +53,8 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         value=(date.today() + timedelta(days=180)).isoformat(),
     )
 
-    # =========================================================
-    # FORMULÁRIO DE EVENTO
-    # =========================================================
-    tf_ev_titulo = ft.TextField(label="Título do evento", width=220)
+    # ---------- formulario evento ----------
+    tf_ev_titulo = ft.TextField(label="Titulo do evento", width=220)
     tf_ev_data = ft.TextField(
         label="Data (AAAA-MM-DD)",
         width=150,
@@ -70,22 +64,22 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         label="Tipo",
         width=150,
         options=[
-            ft.dropdown.Option("feriado", "Feriado"),
-            ft.dropdown.Option("recesso", "Recesso"),
-            ft.dropdown.Option("evento", "Evento"),
-            ft.dropdown.Option("reposicao", "Reposição"),
-            ft.dropdown.Option("monitoria", "Monitoria"),
+            ft.dropdown.Option(key="feriado", text="Feriado"),
+            ft.dropdown.Option(key="recesso", text="Recesso"),
+            ft.dropdown.Option(key="evento", text="Evento"),
+            ft.dropdown.Option(key="reposicao", text="Reposicao"),
+            ft.dropdown.Option(key="monitoria", text="Monitoria"),
         ],
         value="recesso",
     )
 
-    # =========================================================
-    # FUNÇÕES DE ATUALIZAÇÃO
-    # =========================================================
     def mostrar_msg(texto: str, cor=ft.Colors.GREEN_400):
         mensagem.value = texto
         mensagem.color = cor
-        mensagem.update()
+        try:
+            mensagem.update()
+        except Exception:
+            pass
 
     def montar_card_turma(t: dict) -> ft.Container:
         dias_txt = dias_semana_para_texto(parse_dias_semana(t["dias_semana"]))
@@ -167,7 +161,11 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                                 ft.Container(width=6, height=28, bgcolor=cor, border_radius=3),
                                 ft.Column(
                                     [
-                                        ft.Text(f"{ev['data']} — {ev['titulo']}", size=12, weight=ft.FontWeight.W_500),
+                                        ft.Text(
+                                            f"{ev['data']} — {ev['titulo']}",
+                                            size=12,
+                                            weight=ft.FontWeight.W_500,
+                                        ),
                                         ft.Text(ev["tipo"], size=10, color=ft.Colors.GREY_500),
                                     ],
                                     spacing=0,
@@ -219,17 +217,16 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                     width=120,
                     dense=True,
                     text_size=12,
-                    data=a["id"],  # id da aula
+                    data=a["id"],
                 )
 
                 def fazer_remarcar(e, campo=tf_data, aula_id=a["id"]):
                     nova_data = (campo.value or "").strip()
                     try:
-                        remarcar_aula
                         msg = remarcar_aula(aula_id, nova_data)
                         mostrar_msg(msg)
                         carregar_aulas_turma(turma_selecionada_id["id"])
-                        atualizar_lista_turmas()  # atualiza contagem se necessário
+                        atualizar_lista_turmas()
                     except Exception as ex:
                         mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
 
@@ -257,28 +254,29 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         except Exception:
             pass
 
-    # =========================================================
-    # HANDLERS
-    # =========================================================
+    # ---------- handlers ----------
     def on_selecionar_turma(e):
         turma_id = e.control.data
         turma_selecionada_id["id"] = turma_id
         atualizar_lista_turmas()
         carregar_aulas_turma(turma_id)
-        mostrar_msg(f"Turma {turma_id} selecionada — edite as datas à direita se quiser remarcar.")
+        mostrar_msg(
+            f"Turma {turma_id} selecionada — edite as datas a direita se quiser remarcar."
+        )
 
     def on_excluir_turma(e):
-        e.control.page  # garante referência
         excluir_turma(e.control.data)
         if turma_selecionada_id["id"] == e.control.data:
             turma_selecionada_id["id"] = None
             painel_aulas.controls.clear()
-            painel_aulas.controls.append(ft.Text("Selecione uma turma.", italic=True, color=ft.Colors.GREY_500))
+            painel_aulas.controls.append(
+                ft.Text("Selecione uma turma.", italic=True, color=ft.Colors.GREY_500)
+            )
             try:
                 painel_aulas.update()
             except Exception:
                 pass
-        mostrar_msg("Turma excluída.", ft.Colors.ORANGE_400)
+        mostrar_msg("Turma excluida.", ft.Colors.ORANGE_400)
         atualizar_lista_turmas()
 
     def on_salvar_turma(e):
@@ -314,7 +312,7 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
     def on_salvar_evento(e):
         titulo = (tf_ev_titulo.value or "").strip()
         if not titulo:
-            mostrar_msg("Informe o título do evento.", ft.Colors.RED_400)
+            mostrar_msg("Informe o titulo do evento.", ft.Colors.RED_400)
             return
         tipo = dd_ev_tipo.value or "recesso"
         try:
@@ -328,10 +326,11 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
             mostrar_msg(f"Evento '{titulo}' cadastrado.")
             atualizar_lista_eventos()
 
-            # se for feriado/recesso, oferece regenerar
             if tipo in ("feriado", "recesso"):
                 n = regenerar_todas_turmas_ativas()
-                mostrar_msg(f"Evento salvo. {n} novas aulas geradas (feriados/recessos respeitados).")
+                mostrar_msg(
+                    f"Evento salvo. {n} novas aulas geradas (feriados/recessos respeitados)."
+                )
                 atualizar_lista_turmas()
                 if turma_selecionada_id["id"]:
                     carregar_aulas_turma(turma_selecionada_id["id"])
@@ -343,9 +342,14 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         mostrar_msg("Evento removido.", ft.Colors.ORANGE_400)
         atualizar_lista_eventos()
 
-    # =========================================================
-    # LAYOUT
-    # =========================================================
+    def on_backup(e):
+        try:
+            caminho = fazer_backup()
+            mostrar_msg(f"Backup salvo em: {caminho}")
+        except Exception as ex:
+            mostrar_msg(f"Erro no backup: {ex}", ft.Colors.RED_400)
+
+    # ---------- layout ----------
     form_turma = ft.Container(
         content=ft.Column(
             [
@@ -355,7 +359,11 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                 ft.Text("Dias:", size=12),
                 ft.Row(list(dias_checks.values()), wrap=True, spacing=4),
                 ft.Row([tf_inicio, tf_fim], spacing=8),
-                ft.ElevatedButton("Salvar turma + gerar aulas", icon=ft.Icons.SAVE, on_click=on_salvar_turma),
+                ft.ElevatedButton(
+                    "Salvar turma + gerar aulas",
+                    icon=ft.Icons.SAVE,
+                    on_click=on_salvar_turma,
+                ),
             ],
             spacing=8,
         ),
@@ -371,7 +379,11 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                 ft.Text("Novo evento", size=16, weight=ft.FontWeight.W_600),
                 tf_ev_titulo,
                 ft.Row([tf_ev_data, dd_ev_tipo], spacing=8),
-                ft.ElevatedButton("Salvar evento", icon=ft.Icons.EVENT, on_click=on_salvar_evento),
+                ft.ElevatedButton(
+                    "Salvar evento",
+                    icon=ft.Icons.EVENT,
+                    on_click=on_salvar_evento,
+                ),
                 ft.Text("Eventos cadastrados", size=13, weight=ft.FontWeight.W_500),
                 lista_eventos_col,
             ],
@@ -383,8 +395,31 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         width=300,
     )
 
+    form_backup = ft.Container(
+        content=ft.Column(
+            [
+                ft.Text("Backup", size=16, weight=ft.FontWeight.W_600),
+                ft.Text(
+                    "Copia o banco para data/backups/ com data e hora no nome.",
+                    size=11,
+                    color=ft.Colors.GREY_500,
+                ),
+                ft.OutlinedButton(
+                    "Fazer backup do banco",
+                    icon=ft.Icons.BACKUP,
+                    on_click=on_backup,
+                ),
+            ],
+            spacing=8,
+        ),
+        padding=12,
+        border=ft.Border.all(1, ft.Colors.GREY_800),
+        border_radius=10,
+        width=300,
+    )
+
     coluna_esquerda = ft.Column(
-        [form_turma, form_evento],
+        [form_turma, form_evento, form_backup],
         spacing=12,
         scroll=ft.ScrollMode.AUTO,
         width=320,
@@ -402,7 +437,11 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
     coluna_direita = ft.Column(
         [
             ft.Text("Aulas da turma selecionada", size=16, weight=ft.FontWeight.W_600),
-            ft.Text("Altere a data e clique em salvar para remarcar.", size=11, color=ft.Colors.GREY_500),
+            ft.Text(
+                "Altere a data e clique em salvar para remarcar.",
+                size=11,
+                color=ft.Colors.GREY_500,
+            ),
             painel_aulas,
         ],
         expand=True,
@@ -410,9 +449,60 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         width=340,
     )
 
-    view = ft.Column(
+    # carga inicial
+    turmas = listar_turmas()
+    if not turmas:
+        lista_turmas_col.controls.append(
+            ft.Text("Nenhuma turma cadastrada.", italic=True, color=ft.Colors.GREY_500)
+        )
+    else:
+        for t in turmas:
+            lista_turmas_col.controls.append(montar_card_turma(t))
+
+    eventos = listar_eventos()
+    if not eventos:
+        lista_eventos_col.controls.append(
+            ft.Text("Nenhum evento.", italic=True, color=ft.Colors.GREY_500, size=12)
+        )
+    else:
+        for ev in eventos:
+            cor = ev.get("cor") or "#9C27B0"
+            lista_eventos_col.controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Container(width=6, height=28, bgcolor=cor, border_radius=3),
+                            ft.Column(
+                                [
+                                    ft.Text(f"{ev['data']} — {ev['titulo']}", size=12),
+                                    ft.Text(ev["tipo"], size=10, color=ft.Colors.GREY_500),
+                                ],
+                                spacing=0,
+                                expand=True,
+                            ),
+                            ft.IconButton(
+                                icon=ft.Icons.CLOSE,
+                                icon_size=14,
+                                icon_color=ft.Colors.RED_300,
+                                data=ev["id"],
+                                on_click=on_excluir_evento,
+                            ),
+                        ],
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    padding=6,
+                    border=ft.Border.all(1, ft.Colors.GREY_800),
+                    border_radius=6,
+                )
+            )
+
+    painel_aulas.controls.append(
+        ft.Text("Clique numa turma para ver as aulas.", italic=True, color=ft.Colors.GREY_500)
+    )
+
+    return ft.Column(
         [
-            ft.Text("⚙️ Gerenciar", size=26, weight=ft.FontWeight.BOLD),
+            ft.Text("Gerenciar", size=26, weight=ft.FontWeight.BOLD),
             mensagem,
             ft.Divider(height=1),
             ft.Row(
@@ -430,60 +520,3 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         expand=True,
         spacing=8,
     )
-
-    # carga inicial (sem .update — a view ainda não está na página)
-    def carga_inicial():
-        lista_turmas_col.controls.clear()
-        turmas = listar_turmas()
-        if not turmas:
-            lista_turmas_col.controls.append(
-                ft.Text("Nenhuma turma cadastrada.", italic=True, color=ft.Colors.GREY_500)
-            )
-        else:
-            for t in turmas:
-                lista_turmas_col.controls.append(montar_card_turma(t))
-
-        lista_eventos_col.controls.clear()
-        eventos = listar_eventos()
-        if not eventos:
-            lista_eventos_col.controls.append(
-                ft.Text("Nenhum evento.", italic=True, color=ft.Colors.GREY_500, size=12)
-            )
-        else:
-            for ev in eventos:
-                cor = ev.get("cor") or "#9C27B0"
-                lista_eventos_col.controls.append(
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Container(width=6, height=28, bgcolor=cor, border_radius=3),
-                                ft.Column(
-                                    [
-                                        ft.Text(f"{ev['data']} — {ev['titulo']}", size=12),
-                                        ft.Text(ev["tipo"], size=10, color=ft.Colors.GREY_500),
-                                    ],
-                                    spacing=0,
-                                    expand=True,
-                                ),
-                                ft.IconButton(
-                                    icon=ft.Icons.CLOSE,
-                                    icon_size=14,
-                                    icon_color=ft.Colors.RED_300,
-                                    data=ev["id"],
-                                    on_click=on_excluir_evento,
-                                ),
-                            ],
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        padding=6,
-                        border=ft.Border.all(1, ft.Colors.GREY_800),
-                        border_radius=6,
-                    )
-                )
-
-        painel_aulas.controls.append(
-            ft.Text("Clique numa turma para ver as aulas.", italic=True, color=ft.Colors.GREY_500)
-        )
-
-    carga_inicial()
-    return view

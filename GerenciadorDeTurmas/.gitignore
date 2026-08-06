@@ -1,7 +1,8 @@
-keys/
 *.db
+keys/
+data/*.db
+data/*.db-journal
+data/backups/
 __pycache__/
 *.pyc
 .env
-data/*.db
-data/*.db-journal
