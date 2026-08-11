@@ -1,6 +1,6 @@
 """
-Controles de interface usando widgets do Matplotlib (Fase 1).
-Na Fase 3 estes controles devem migrar para PySide6 ou Dear PyGui.
+Controles de interface usando widgets do Matplotlib (Fase 3 – início).
+Layout reorganizado + botão Passo a passo.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from bilhar.core.estado import EstadoSimulacao
 from bilhar.viz.canvas import CanvasConfiguracao
 from bilhar.viz.fase import CanvasFase
 from bilhar.viz.animacao import AnimacaoBilhar
+from bilhar.core.integrador import Integrador
 
 
 class ControlesUI:
@@ -30,74 +31,116 @@ class ControlesUI:
         self.canvas_config = canvas_config
         self.canvas_fase = canvas_fase
         self.animacao = animacao
+        self.integrador = Integrador(estado)   # usado pelo passo a passo
 
         self._criar_widgets()
         self._conectar_callbacks()
 
     def _criar_widgets(self):
-        # --- Fronteira ---
+        # =========================================================
+        # Coluna 1 – Fronteira
+        # =========================================================
         self.fig.patches.append(
             patches.Rectangle(
-                (0.05, 0.15), 0.15, 0.07,
+                (0.02, 0.02), 0.14, 0.20,
                 transform=self.fig.transFigure,
-                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.7,
+                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.8,
             )
         )
-        ax_radio = plt.axes([0.05, 0.05, 0.13, 0.12])
-        self.radio = RadioButtons(ax_radio, ["Círculo", "Elipse", "Estádio"], active=0)
-        self.fig.text(0.095, 0.18, "Fronteira", transform=self.fig.transFigure, ha="center", fontsize=9)
+        self.fig.text(0.09, 0.20, "Fronteira", transform=self.fig.transFigure,
+                      ha="center", fontsize=9, fontweight="bold")
 
-        # --- Parâmetros a, b ---
+        ax_radio = plt.axes([0.03, 0.04, 0.12, 0.15])
+        self.radio = RadioButtons(
+            ax_radio,
+            ["Círculo", "Elipse", "Estádio", "Polígono"],
+            active=0,
+        )
+
+        # =========================================================
+        # Coluna 2 – Parâmetros a, b
+        # =========================================================
         self.fig.patches.append(
             patches.Rectangle(
-                (0.25, 0.15), 0.20, 0.07,
+                (0.18, 0.02), 0.14, 0.20,
                 transform=self.fig.transFigure,
-                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.7,
+                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.8,
             )
         )
-        self.fig.text(0.25, 0.18, "Parâmetros da Curva", transform=self.fig.transFigure, ha="center", fontsize=9)
-        ax_texto_a = plt.axes([0.24, 0.14, 0.06, 0.04])
-        self.texto_a = TextBox(ax_texto_a, "a", initial="1.0")
-        ax_texto_b = plt.axes([0.24, 0.10, 0.06, 0.04])
-        self.texto_b = TextBox(ax_texto_b, "b", initial="1.0")
+        self.fig.text(0.25, 0.20, "Parâmetros", transform=self.fig.transFigure,
+                      ha="center", fontsize=9, fontweight="bold")
 
-        # --- Modo de colisão ---
+        ax_texto_a = plt.axes([0.20, 0.13, 0.10, 0.04])
+        self.texto_a = TextBox(ax_texto_a, "a ", initial="1.0")
+        ax_texto_b = plt.axes([0.20, 0.07, 0.10, 0.04])
+        self.texto_b = TextBox(ax_texto_b, "b ", initial="1.0")
+
+        # =========================================================
+        # Coluna 3 – Modo de colisão
+        # =========================================================
         self.fig.patches.append(
             patches.Rectangle(
-                (0.35, 0.15), 0.15, 0.07,
+                (0.34, 0.02), 0.14, 0.20,
                 transform=self.fig.transFigure,
-                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.7,
+                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.8,
             )
         )
-        ax_radio_modo = plt.axes([0.34, 0.07, 0.13, 0.1])
-        self.radio_modo = RadioButtons(ax_radio_modo, ["Elástico", "Simplético"], active=0)
-        self.fig.text(0.385, 0.18, "Colisão", transform=self.fig.transFigure, ha="center", fontsize=9)
+        self.fig.text(0.41, 0.20, "Colisão", transform=self.fig.transFigure,
+                      ha="center", fontsize=9, fontweight="bold")
 
-        # --- Condição inicial ---
-        self.fig.text(0.65, 0.18, "Condição Inicial", transform=self.fig.transFigure, ha="center", fontsize=9)
-        ax_pos_t = plt.axes([0.60, 0.15, 0.15, 0.02])
-        self.slider_pos_t = Slider(ax_pos_t, "t (× π)", 0, 2, valinit=0, valstep=0.005)
-        ax_angulo = plt.axes([0.60, 0.11, 0.15, 0.02])
-        self.slider_angulo = Slider(ax_angulo, "Ângulo (× π)", 0, 1, valinit=0.25, valstep=0.01)
-        ax_vel = plt.axes([0.60, 0.07, 0.15, 0.02])
+        ax_radio_modo = plt.axes([0.35, 0.05, 0.12, 0.13])
+        self.radio_modo = RadioButtons(
+            ax_radio_modo,
+            ["Elástico", "Simplético"],
+            active=0,
+        )
+
+        # =========================================================
+        # Coluna 4 – Condição inicial (sliders)
+        # =========================================================
+        self.fig.patches.append(
+            patches.Rectangle(
+                (0.50, 0.02), 0.28, 0.20,
+                transform=self.fig.transFigure,
+                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.8,
+            )
+        )
+        self.fig.text(0.64, 0.20, "Condição Inicial", transform=self.fig.transFigure,
+                      ha="center", fontsize=9, fontweight="bold")
+
+        ax_pos_t = plt.axes([0.52, 0.14, 0.24, 0.03])
+        self.slider_pos_t = Slider(ax_pos_t, "t (×π)", 0, 2, valinit=0, valstep=0.005)
+
+        ax_angulo = plt.axes([0.52, 0.09, 0.24, 0.03])
+        self.slider_angulo = Slider(ax_angulo, "Ângulo (×π)", 0, 1, valinit=0.25, valstep=0.01)
+
+        ax_vel = plt.axes([0.52, 0.04, 0.24, 0.03])
         self.slider_vel = Slider(ax_vel, "Velocidade", 0.5, 4.0, valinit=1.0, valstep=0.1)
 
-        # --- Botões de controle ---
+        # =========================================================
+        # Coluna 5 – Botões de controle
+        # =========================================================
         self.fig.patches.append(
             patches.Rectangle(
-                (0.50, 0.05), 0.48, 0.09,
+                (0.80, 0.02), 0.18, 0.20,
                 transform=self.fig.transFigure,
-                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.7,
+                facecolor="#f0f0f5", edgecolor="#cccccc", alpha=0.8,
             )
         )
-        self.fig.text(0.86, 0.18, "Controles da Simulação", transform=self.fig.transFigure, ha="center", fontsize=9)
+        self.fig.text(0.89, 0.20, "Simulação", transform=self.fig.transFigure,
+                      ha="center", fontsize=9, fontweight="bold")
 
-        ax_botao_start = plt.axes([0.82, 0.13, 0.08, 0.04])
-        self.botao_start_pause = Button(ax_botao_start, "Iniciar", color="#ddffdd")
-        ax_botao_reset = plt.axes([0.82, 0.08, 0.08, 0.04])
-        self.botao_reset = Button(ax_botao_reset, "Reset", color="#ffdddd")
-        ax_botao_info = plt.axes([0.82, 0.03, 0.08, 0.04])
-        self.botao_info = Button(ax_botao_info, "Info", color="#ddddff")
+        ax_start = plt.axes([0.82, 0.14, 0.14, 0.04])
+        self.botao_start_pause = Button(ax_start, "Iniciar", color="#c8f7c5")
+
+        ax_step = plt.axes([0.82, 0.09, 0.14, 0.04])
+        self.botao_step = Button(ax_step, "Passo a passo", color="#c5e0f7")
+
+        ax_reset = plt.axes([0.82, 0.04, 0.07, 0.04])
+        self.botao_reset = Button(ax_reset, "Reset", color="#f7c5c5")
+
+        ax_info = plt.axes([0.90, 0.04, 0.06, 0.04])
+        self.botao_info = Button(ax_info, "Info", color="#e0c5f7")
 
     def _conectar_callbacks(self):
         self.radio.on_clicked(self._on_curva)
@@ -108,15 +151,19 @@ class ControlesUI:
         self.slider_angulo.on_changed(self._on_angulo)
         self.slider_vel.on_changed(self._on_vel)
         self.botao_start_pause.on_clicked(self._on_start_pause)
+        self.botao_step.on_clicked(self._on_step)
         self.botao_reset.on_clicked(self._on_reset)
         self.botao_info.on_clicked(self._on_info)
 
-    # ---------- Callbacks ----------
+    # -------------------- Callbacks --------------------
 
     def _on_curva(self, label):
         if self.estado.primeiro_inicio:
-            a = float(self.texto_a.text)
-            b = float(self.texto_b.text)
+            try:
+                a = float(self.texto_a.text)
+                b = float(self.texto_b.text)
+            except ValueError:
+                a, b = 1.0, 1.0
             self.estado.atualizar_curva(label, a=a, b=b)
             self.canvas_config.atualizar_estado_inicial(self.estado)
             self.fig.canvas.draw_idle()
@@ -161,13 +208,33 @@ class ControlesUI:
             self.estado.pausado = False
             self.canvas_config.texto_info.set_text("Simulação em andamento...")
             self.botao_start_pause.label.set_text("Pausar")
-            self.botao_reset.label.set_text("Reset")
-            self.estado.reset_all = False
             self.animacao.iniciar()
         else:
             self.estado.pausado = True
             self.canvas_config.texto_info.set_text("Simulação pausada")
             self.botao_start_pause.label.set_text("Continuar")
+
+    def _on_step(self, event):
+        """Avança a simulação até a próxima colisão (ou um pouco de tempo)."""
+        estava_pausado = self.estado.pausado
+        self.estado.pausado = False
+
+        # Avança até registrar pelo menos uma nova colisão ou um limite de tempo
+        n_antes = len(self.estado.lista_t_colisao)
+        for _ in range(500):          # segurança
+            self.integrador.passo(0.02)
+            if len(self.estado.lista_t_colisao) > n_antes:
+                break
+
+        self.estado.pausado = True
+        self.botao_start_pause.label.set_text("Continuar")
+
+        self.canvas_config.atualizar_frame(self.estado)
+        self.canvas_fase.atualizar(self.estado)
+        self.canvas_config.texto_info.set_text(
+            f"Passo a passo | Colisões: {len(self.estado.lista_t_colisao)}"
+        )
+        self.fig.canvas.draw_idle()
 
     def _on_reset(self, event):
         self.slider_pos_t.set_val(0)
@@ -182,22 +249,13 @@ class ControlesUI:
         self.canvas_fase.reset_heatmap(self.estado)
         self.canvas_config.atualizar_estado_inicial(self.estado)
         self.canvas_fase.atualizar(self.estado)
-
-        if self.estado.reset_all:
-            self.botao_reset.label.set_text("Reset")
-            self.estado.reset_all = False
-        else:
-            self.estado.reset_all = True
-            self.botao_reset.label.set_text("Reset all")
-
         self.fig.canvas.draw_idle()
 
     def _on_info(self, event):
         self.canvas_config.texto_info.set_text(
-            "Simulação de Bilhares – Versão Modular (Fase 1)\n"
-            "• Física separada da visualização\n"
-            "• Curvas plugáveis (Círculo / Elipse)\n"
-            "• Mapa de calor inferno + nearest\n"
-            "• Pronto para expansão (Fase 2+)"
+            "Simulação de Bilhares – Fase 3 (início)\n"
+            "• Passo a passo: avança até a próxima colisão\n"
+            "• Curvas: Círculo, Elipse, Estádio, Polígono\n"
+            "• Layout de controles reorganizado"
         )
         self.fig.canvas.draw_idle()

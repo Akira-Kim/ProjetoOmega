@@ -10,19 +10,22 @@ Para adicionar uma nova curva:
 from .circulo import Circulo
 from .elipse import Elipse
 from .estadio import Estadio
+from .poligono import Poligono
 
 # Registro central – única fonte de verdade
 CURVAS_DISPONIVEIS: dict[str, type] = {
     "Círculo": Circulo,
     "Elipse": Elipse,
     "Estádio": Estadio,
+    "Polígono": Poligono,
 }
 
-# Descrição curta dos parâmetros (usada na UI e documentação)
+# Descrição curta dos parâmetros
 PARAMETROS_CURVA = {
-    "Círculo": {"a": "ignorado", "b": "ignorado"},
-    "Elipse": {"a": "semi-eixo x", "b": "semi-eixo y"},
-    "Estádio": {"a": "semi-comprimento da reta", "b": "raio das tampas"},
+    "Círculo":  {"a": "ignorado", "b": "ignorado"},
+    "Elipse":   {"a": "semi-eixo x", "b": "semi-eixo y"},
+    "Estádio":  {"a": "semi-comprimento da reta", "b": "raio das tampas"},
+    "Polígono": {"a": "número de lados (≥3)", "b": "raio circunscrito"},
 }
 
 
@@ -42,6 +45,7 @@ __all__ = [
     "Circulo",
     "Elipse",
     "Estadio",
+    "Poligono",
     "CURVAS_DISPONIVEIS",
     "PARAMETROS_CURVA",
     "criar_curva",

@@ -42,6 +42,13 @@ class EstadoSimulacao:
             len_reta = getattr(self.curva, "len_reta", 2.0)
             t0 = (len_reta * 0.5 / perim) * 2 * np.pi
 
+        # Evita começar exatamente em vértice do Polígono
+        if curva_nome == "Polígono" and abs(t0) < 1e-9:
+            # Coloca no meio do primeiro lado
+            perim = getattr(self.curva, "perimetro", 2 * np.pi)
+            len_lado = getattr(self.curva, "len_lado", 1.0)
+            t0 = (len_lado * 0.5 / perim) * 2 * np.pi
+
         self.t: float = t0
         self.pos: np.ndarray = self.curva.ponto(self.t)
         self.angulo_vel: float = angulo_vel
