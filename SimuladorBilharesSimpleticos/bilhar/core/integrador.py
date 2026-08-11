@@ -6,7 +6,7 @@ Avança a partícula até a próxima colisão ou pelo dt solicitado.
 from __future__ import annotations
 import numpy as np
 from .estado import EstadoSimulacao
-from .fisica import aplicar_colisao
+from .fisica import aplicar_colisao, refletir_vetor
 
 
 class Integrador:
@@ -64,9 +64,9 @@ class Integrador:
             est.trajetoria_aux_x = aux_x
             est.trajetoria_aux_y = aux_y
 
-            # Pequeno empurrão para fora da superfície
-            est.pos = hit_pos + 1e-8 * est.vel
+            # Projeta o ponto exatamente sobre a curva + micro empurrão para dentro
             est.t = t_hit
+            est.pos = curva.ponto(est.t) + 1e-9 * est.vel
 
             # Ângulo com a tangente (para o espaço de fase)
             tg = curva.tangente(est.t)
@@ -80,7 +80,39 @@ class Integrador:
 
             time_left -= lam
 
+        # --- Rede de segurança: se saiu do domínio, corrige ---
+        if not self._esta_dentro(est):
+            t_corr = curva.t_from_pos(est.pos)
+            est.t = t_corr
+            est.pos = curva.ponto(t_corr)
+            n = curva.normal(est.t)
+            est.vel = refletir_vetor(est.vel, n)
+            norma = np.linalg.norm(est.vel)
+            if norma > 1e-12:
+                est.vel /= norma
+            est.pos = est.pos + 1e-9 * est.vel
+
         # Limita o tamanho do histórico de trajetória
         if len(est.traj_x) > 20000:
             est.traj_x = est.traj_x[-10000:]
             est.traj_y = est.traj_y[-10000:]
+
+    def _esta_dentro(self, est) -> bool:
+        """Teste simples se a posição está dentro (ou sobre) a curva atual."""
+        x, y = float(est.pos[0]), float(est.pos[1])
+        nome = est.curva_nome
+        a = est.parametro_a
+        b = est.parametro_b
+
+        if nome == "Círculo":
+            return x * x + y * y <= 1.0 + 1e-4
+        if nome == "Elipse":
+            return (x / a) ** 2 + (y / b) ** 2 <= 1.0 + 1e-4
+        if nome == "Estádio":
+            r = b
+            if abs(x) <= a:
+                return abs(y) <= r + 1e-4
+            cx = a if x > 0 else -a
+            return (x - cx) ** 2 + y * y <= r * r + 1e-4
+        # fallback genérico
+        return True

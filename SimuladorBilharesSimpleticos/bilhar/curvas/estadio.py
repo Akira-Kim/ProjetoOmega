@@ -14,6 +14,7 @@ para manter compatibilidade com o espaço de fase existente (t / π).
 """
 
 from __future__ import annotations
+from turtle import pos
 import numpy as np
 from bilhar.core.curva import CurvaBase
 
@@ -155,28 +156,53 @@ class Estadio(CurvaBase):
         return valid
 
     def t_from_pos(self, pos: np.ndarray) -> float:
-        """Recupera o parâmetro t a partir de um ponto aproximadamente sobre a curva."""
-        x, y = pos
-        if abs(y - self.r) < 1e-5 and -self.a - 1e-5 <= x <= self.a + 1e-5:
-            s = (x + self.a)
+            """
+            Recupera o parâmetro t a partir de um ponto aproximadamente sobre a curva.
+            Versão mais tolerante nas junções reta ↔ semicírculo.
+            """
+            x, y = float(pos[0]), float(pos[1])
+            a, r = self.a, self.r
+            tol = 1e-4          # tolerância maior perto das junções
+            tol_y = 1e-3
+
+            # --- Retas ---
+            if abs(y - r) < tol_y and -a - tol <= x <= a + tol:
+                # reta superior
+                x_clamped = np.clip(x, -a, a)
+                s = (x_clamped + a)
+                return self._t_from_s(s)
+
+            if abs(y + r) < tol_y and -a - tol <= x <= a + tol:
+                # reta inferior
+                x_clamped = np.clip(x, -a, a)
+                s = self.len_reta + self.len_semi + (a - x_clamped)
+                return self._t_from_s(s)
+
+            # --- Semicírculo direito ---
+            if x > a - tol:
+                dx = x - a
+                theta = np.arctan2(y, dx)
+                # limita ao intervalo da semi direita [-π/2, π/2]
+                theta = np.clip(theta, -np.pi/2, np.pi/2)
+                local = (theta + np.pi/2) * r
+                s = self.len_reta + local
+                return self._t_from_s(s)
+
+            # --- Semicírculo esquerdo ---
+            dx = x + a
+            theta = np.arctan2(y, dx)
+            if theta < 0:
+                theta += 2 * np.pi
+            # limita ao intervalo da semi esquerda [π/2, 3π/2]
+            theta = np.clip(theta, np.pi/2, 3*np.pi/2)
+            local = (theta - np.pi/2) * r
+            s = self.len_reta + self.len_semi + self.len_reta + local
             return self._t_from_s(s)
-        if abs(y + self.r) < 1e-5 and -self.a - 1e-5 <= x <= self.a + 1e-5:
-            s = self.len_reta + self.len_semi + (self.a - x)
-            return self._t_from_s(s)
-        if x >= self.a - 1e-5:
-            theta = np.arctan2(y, x - self.a)
-            local = (theta + np.pi / 2) * self.r
-            s = self.len_reta + local
-            return self._t_from_s(s)
-        # semi esquerda
-        theta = np.arctan2(y, x + self.a)
-        if theta < 0:
-            theta += 2 * np.pi
-        local = (theta - np.pi / 2) * self.r
-        s = self.len_reta + self.len_semi + self.len_reta + local
-        return self._t_from_s(s)
 
     def sample(self, n: int = 10000) -> np.ndarray:
-        ts = np.linspace(0, 2 * np.pi, n, endpoint=True)
-        pts = np.array([self.ponto(t) for t in ts]).T
-        return pts
+        """Amostra a curva de forma contínua, evitando pontos duplicados nas junções."""
+        # Usamos um número de pontos proporcional ao perímetro
+        # e evitamos o ponto final = ponto inicial para não fechar com corda
+        ts = np.linspace(0, 2 * np.pi, n, endpoint=False)
+        pts = np.array([self.ponto(t) for t in ts])
+        return pts.T  # shape (2, n)
