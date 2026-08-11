@@ -32,12 +32,6 @@ class Estadio(CurvaBase):
         self.len_semi = np.pi * self.r
         self.perimetro = 2.0 * self.len_reta + 2.0 * self.len_semi
 
-        # Pontos de transição no parâmetro de arco s ∈ [0, perimetro)
-        # 0                : início da reta superior (esquerda)
-        # len_reta         : fim da reta superior → início semi direita
-        # len_reta+len_semi: fim semi direita → início reta inferior
-        # ... e assim por diante
-
     def _s_from_t(self, t: float) -> float:
         """Converte t ∈ [0, 2π) para comprimento de arco s ∈ [0, perimetro)."""
         t = t % (2 * np.pi)
@@ -95,7 +89,6 @@ class Estadio(CurvaBase):
             return np.array([1.0, 0.0])
         if seg == 1:
             theta = -np.pi / 2 + local / self.r
-            # tangente da circunferência: (-sin, cos)
             return np.array([-np.sin(theta), np.cos(theta)])
         if seg == 2:
             return np.array([-1.0, 0.0])
@@ -106,13 +99,9 @@ class Estadio(CurvaBase):
     def normal(self, t: float) -> np.ndarray:
         """Normal apontando para dentro do estádio."""
         tg = self.tangente(t)
-        # Rotação de +90° (sentido anti-horário) dá normal externa para orientação padrão;
-        # queremos a interna → rotação de -90°.
-        n = np.array([tg[1], -tg[0]])
-        # Garante que aponta para dentro (teste simples no centro)
-        # Para o estádio o centro é (0,0); se o ponto + epsilon*n se afasta do centro, inverte.
+        n = np.array([tg[1], -tg[0]])  # rotação -90°
         p = self.ponto(t)
-        if np.dot(n, p) > 0:
+        if np.dot(n, p) > 0:          # se aponta para fora, inverte
             n = -n
         return n
 
@@ -125,18 +114,16 @@ class Estadio(CurvaBase):
         dx, dy = direction
         hits: list[float] = []
 
-        # --- Retas horizontais y = ±r (apenas no intervalo x ∈ [-a, a]) ---
+        # Retas horizontais y = ±r (só no intervalo x ∈ [-a, a])
         if abs(dy) > 1e-14:
-            for y_reta, sentido in [(self.r, 0), (-self.r, 2)]:
+            for y_reta in (self.r, -self.r):
                 lam = (y_reta - py) / dy
                 x = px + lam * dx
                 if -self.a - 1e-8 <= x <= self.a + 1e-8:
                     hits.append(lam)
 
-        # --- Semicírculo direito (centro = (a, 0), x >= a) ---
-        hits.extend(self._intersect_semicircle(point, direction, cx=self.a, cy=0.0, lado="dir"))
-
-        # --- Semicírculo esquerdo (centro = (-a, 0), x <= -a) ---
+        # Semicírculos
+        hits.extend(self._intersect_semicircle(point, direction, cx=self.a,  cy=0.0, lado="dir"))
         hits.extend(self._intersect_semicircle(point, direction, cx=-self.a, cy=0.0, lado="esq"))
 
         return hits
@@ -146,7 +133,6 @@ class Estadio(CurvaBase):
     ) -> list[float]:
         px, py = point
         dx, dy = direction
-        # Equação |P + λ D - C|² = r²
         fx = px - cx
         fy = py - cy
         A = dx * dx + dy * dy
@@ -162,7 +148,6 @@ class Estadio(CurvaBase):
         valid = []
         for lam in lambs:
             x = px + lam * dx
-            y = py + lam * dy
             if lado == "dir" and x >= cx - 1e-8:
                 valid.append(lam)
             elif lado == "esq" and x <= cx + 1e-8:
@@ -172,23 +157,19 @@ class Estadio(CurvaBase):
     def t_from_pos(self, pos: np.ndarray) -> float:
         """Recupera o parâmetro t a partir de um ponto aproximadamente sobre a curva."""
         x, y = pos
-        # Decide o segmento pelo valor de x e y
         if abs(y - self.r) < 1e-5 and -self.a - 1e-5 <= x <= self.a + 1e-5:
-            # reta superior
             s = (x + self.a)
             return self._t_from_s(s)
         if abs(y + self.r) < 1e-5 and -self.a - 1e-5 <= x <= self.a + 1e-5:
-            # reta inferior
             s = self.len_reta + self.len_semi + (self.a - x)
             return self._t_from_s(s)
         if x >= self.a - 1e-5:
-            # semi direita
-            theta = np.arctan2(y, x - self.a)  # de -π/2 a π/2
+            theta = np.arctan2(y, x - self.a)
             local = (theta + np.pi / 2) * self.r
             s = self.len_reta + local
             return self._t_from_s(s)
         # semi esquerda
-        theta = np.arctan2(y, x + self.a)  # de π/2 a 3π/2 (ou -π/2 via wrap)
+        theta = np.arctan2(y, x + self.a)
         if theta < 0:
             theta += 2 * np.pi
         local = (theta - np.pi / 2) * self.r
@@ -196,7 +177,6 @@ class Estadio(CurvaBase):
         return self._t_from_s(s)
 
     def sample(self, n: int = 10000) -> np.ndarray:
-        """Amostra mais uniforme em comprimento de arco."""
         ts = np.linspace(0, 2 * np.pi, n, endpoint=True)
         pts = np.array([self.ponto(t) for t in ts]).T
         return pts
