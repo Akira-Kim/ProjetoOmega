@@ -1,3 +1,9 @@
+© 2026 Akira Kim. All Rights Reserved.
+
+This project and its source code are proprietary.
+No permission is granted to copy, modify, distribute,
+or use this software without explicit authorization
+from the copyright holder.
 
 # OMEGA — Human × Machine
 
