@@ -1,0 +1,847 @@
+[33mtag v0.2.0[m
+Tagger: Akira <bruno.ram2004@gmail.com>
+Date:   Fri Aug 14 16:58:24 2026 -0300
+
+Versão 0.2.0 – estável para uso e demonstração
+
+[33mcommit 8dd8db23aba684e07940d60d50c6c1ab11925715[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;33mtag: [m[1;33mv0.2.0[m[33m)[m
+Author: Akira <bruno.ram2004@gmail.com>
+Date:   Fri Aug 14 16:58:24 2026 -0300
+
+    v0.2.0: interface PySide6, desenho livre e fórmula polar
+
+[1mdiff --git a/GerenciadorDeTurmas/data/planner.db b/GerenciadorDeTurmas/data/planner.db[m
+[1mindex 1777f33..26b62e5 100644[m
+Binary files a/GerenciadorDeTurmas/data/planner.db and b/GerenciadorDeTurmas/data/planner.db differ
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/core/__pycache__/integrador.cpython-311.pyc b/SimuladorBilharesSimpleticos/bilhar/core/__pycache__/integrador.cpython-311.pyc[m
+[1mindex f5272c8..52c2e0d 100644[m
+Binary files a/SimuladorBilharesSimpleticos/bilhar/core/__pycache__/integrador.cpython-311.pyc and b/SimuladorBilharesSimpleticos/bilhar/core/__pycache__/integrador.cpython-311.pyc differ
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/core/integrador.py b/SimuladorBilharesSimpleticos/bilhar/core/integrador.py[m
+[1mindex 40b2915..5ef4df4 100644[m
+[1m--- a/SimuladorBilharesSimpleticos/bilhar/core/integrador.py[m
+[1m+++ b/SimuladorBilharesSimpleticos/bilhar/core/integrador.py[m
+[36m@@ -117,28 +117,36 @@[m [mclass Integrador:[m
+                 cx = a if x > 0 else -a[m
+                 return (x - cx) ** 2 + y * y <= r * r + 1e-4[m
+ [m
+[31m-            if nome == "Polígono":[m
+[31m-                # Teste de ponto em polígono (ray casting) usando os vértices[m
+[32m+[m[32m            if nome in ("Polígono", "Polígono Livre"):[m
+                 verts = getattr(est.curva, "vertices", None)[m
+                 if verts is None:[m
+                     return True[m
+[32m+[m[32m                # vertices do PoligonoLivre incluem o ponto de fechamento no final[m
+[32m+[m[32m                # usamos só os únicos[m
+[32m+[m[32m                if len(verts) > 1 and np.allclose(verts[0], verts[-1]):[m
+[32m+[m[32m                    verts = verts[:-1][m
+                 n = len(verts)[m
+[32m+[m[32m                if n < 3:[m
+[32m+[m[32m                    return True[m
+[32m+[m
+                 dentro = False[m
+                 j = n - 1[m
+                 for i in range(n):[m
+[31m-                    xi, yi = verts[i][m
+[31m-                    xj, yj = verts[j][m
+[31m-                    if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-15) + xi):[m
+[32m+[m[32m                    xi, yi = float(verts[i][0]), float(verts[i][1])[m
+[32m+[m[32m                    xj, yj = float(verts[j][0]), float(verts[j][1])[m
+[32m+[m[32m                    if ((yi > y) != (yj > y)) and ([m
+[32m+[m[32m                        x < (xj - xi) * (y - yi) / (yj - yi + 1e-15) + xi[m
+[32m+[m[32m                    ):[m
+                         dentro = not dentro[m
+                     j = i[m
+[31m-                # margem de tolerância: se estiver muito perto da borda, considera dentro[m
+[32m+[m
+                 if not dentro:[m
+[31m-                    # verifica distância mínima aos lados[m
+[32m+[m[32m                    # margem: se está muito perto de alguma aresta, considera dentro[m
+                     for i in range(n):[m
+[31m-                        v0 = verts[i][m
+[31m-                        v1 = verts[(i + 1) % n][m
+[32m+[m[32m                        v0 = np.asarray(verts[i], dtype=float)[m
+[32m+[m[32m                        v1 = np.asarray(verts[(i + 1) % n], dtype=float)[m
+                         d = v1 - v0[m
+[31m-                        len2 = np.dot(d, d)[m
+[32m+[m[32m                        len2 = float(np.dot(d, d))[m
+                         if len2 < 1e-14:[m
+                             continue[m
+                         mu = np.clip(np.dot(est.pos - v0, d) / len2, 0.0, 1.0)[m
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/curvas/__init__.py b/SimuladorBilharesSimpleticos/bilhar/curvas/__init__.py[m
+[1mindex 40b59e6..f8059d4 100644[m
+[1m--- a/SimuladorBilharesSimpleticos/bilhar/curvas/__init__.py[m
+[1m+++ b/SimuladorBilharesSimpleticos/bilhar/curvas/__init__.py[m
+[36m@@ -1,36 +1,31 @@[m
+ """[m
+ Registro e factory de curvas (fronteiras) do bilhar.[m
+[31m-[m
+[31m-Para adicionar uma nova curva:[m
+[31m-1. Crie o arquivo em bilhar/curvas/minha_curva.py herdando de CurvaBase[m
+[31m-2. Importe e registre abaixo em CURVAS_DISPONIVEIS[m
+[31m-3. (Opcional) Atualize a lista do RadioButtons em ui/controles.py[m
+ """[m
+ [m
+ from .circulo import Circulo[m
+ from .elipse import Elipse[m
+ from .estadio import Estadio[m
+ from .poligono import Poligono[m
+[32m+[m[32mfrom .poligonolivre import PoligonoLivre[m
+ [m
+[31m-# Registro central – única fonte de verdade[m
+ CURVAS_DISPONIVEIS: dict[str, type] = {[m
+     "Círculo": Circulo,[m
+     "Elipse": Elipse,[m
+     "Estádio": Estadio,[m
+     "Polígono": Poligono,[m
+[32m+[m[32m    "Polígono Livre": PoligonoLivre,[m
+ }[m
+ [m
+[31m-# Descrição curta dos parâmetros[m
+ PARAMETROS_CURVA = {[m
+[31m-    "Círculo":  {"a": "ignorado", "b": "ignorado"},[m
+[31m-    "Elipse":   {"a": "semi-eixo x", "b": "semi-eixo y"},[m
+[31m-    "Estádio":  {"a": "semi-comprimento da reta", "b": "raio das tampas"},[m
+[32m+[m[32m    "Círculo": {"a": "ignorado", "b": "ignorado"},[m
+[32m+[m[32m    "Elipse": {"a": "semi-eixo x", "b": "semi-eixo y"},[m
+[32m+[m[32m    "Estádio": {"a": "semi-comprimento da reta", "b": "raio das tampas"},[m
+     "Polígono": {"a": "número de lados (≥3)", "b": "raio circunscrito"},[m
+[32m+[m[32m    "Polígono Livre": {"a": "ignorado", "b": "ignorado"},[m
+ }[m
+ [m
+ [m
+ def criar_curva(nome: str, **params):[m
+[31m-    """Factory: cria uma instância da curva pelo nome."""[m
+     if nome not in CURVAS_DISPONIVEIS:[m
+         disponiveis = ", ".join(CURVAS_DISPONIVEIS.keys())[m
+         raise ValueError(f"Curva '{nome}' não registrada. Disponíveis: {disponiveis}")[m
+[36m@@ -46,6 +41,7 @@[m [m__all__ = [[m
+     "Elipse",[m
+     "Estadio",[m
+     "Poligono",[m
+[32m+[m[32m    "PoligonoLivre",[m
+     "CURVAS_DISPONIVEIS",[m
+     "PARAMETROS_CURVA",[m
+     "criar_curva",[m
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/__init__.cpython-311.pyc b/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/__init__.cpython-311.pyc[m
+[1mindex 01bb6ed..4b5dc00 100644[m
+Binary files a/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/__init__.cpython-311.pyc and b/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/__init__.cpython-311.pyc differ
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/parametrica.cpython-311.pyc b/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/parametrica.cpython-311.pyc[m
+[1mnew file mode 100644[m
+[1mindex 0000000..4a339fa[m
+Binary files /dev/null and b/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/parametrica.cpython-311.pyc differ
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/poligonolivre.cpython-311.pyc b/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/poligonolivre.cpython-311.pyc[m
+[1mnew file mode 100644[m
+[1mindex 0000000..91260ad[m
+Binary files /dev/null and b/SimuladorBilharesSimpleticos/bilhar/curvas/__pycache__/poligonolivre.cpython-311.pyc differ
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/curvas/parametrica.py b/SimuladorBilharesSimpleticos/bilhar/curvas/parametrica.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..815e519[m
+[1m--- /dev/null[m
+[1m+++ b/SimuladorBilharesSimpleticos/bilhar/curvas/parametrica.py[m
+[36m@@ -0,0 +1,71 @@[m
+[32m+[m[32m"""[m
+[32m+[m[32mCurva a partir de fórmula polar r(θ).[m
+[32m+[m
+[32m+[m[32mExemplo:[m
+[32m+[m[32m    r(θ) = 1 + 0.3*cos(3*θ)[m
+[32m+[m
+[32m+[m[32mPor enquanto: amostra a fórmula e devolve um PoligonoLivre.[m
+[32m+[m[32m"""[m
+[32m+[m
+[32m+[m[32mfrom __future__ import annotations[m
+[32m+[m[32mimport numpy as np[m
+[32m+[m[32mfrom bilhar.curvas.poligonolivre import PoligonoLivre[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# Funções permitidas na fórmula (seguro, sem eval aberto)[m
+[32m+[m[32m_ALLOWED = {[m
+[32m+[m[32m    "sin": np.sin,[m
+[32m+[m[32m    "cos": np.cos,[m
+[32m+[m[32m    "tan": np.tan,[m
+[32m+[m[32m    "sqrt": np.sqrt,[m
+[32m+[m[32m    "abs": np.abs,[m
+[32m+[m[32m    "pi": np.pi,[m
+[32m+[m[32m    "exp": np.exp,[m
+[32m+[m[32m    "log": np.log,[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _avaliar_r(formula: str, theta: np.ndarray) -> np.ndarray:[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Avalia r(θ) de forma restrita.[m
+[32m+[m[32m    A fórmula deve usar o nome 'theta' ou 't'.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    expr = formula.strip()[m
+[32m+[m[32m    # aceita r(theta) = ... ou só a expressão[m
+[32m+[m[32m    if "=" in expr:[m
+[32m+[m[32m        expr = expr.split("=", 1)[1].strip()[m
+[32m+[m
+[32m+[m[32m    expr = expr.replace("θ", "theta")[m
+[32m+[m[32m    expr = expr.replace("θ", "theta")[m
+[32m+[m
+[32m+[m[32m    # troca t por theta se a pessoa escrever t[m
+[32m+[m[32m    # (evita confundir com tan)[m
+[32m+[m[32m    local = {"theta": theta, "t": theta, **_ALLOWED}[m
+[32m+[m
+[32m+[m[32m    try:[m
+[32m+[m[32m        r = eval(expr, {"__builtins__": {}}, local)[m
+[32m+[m[32m    except Exception as e:[m
+[32m+[m[32m        raise ValueError(f"Não foi possível interpretar a fórmula: {e}") from e[m
+[32m+[m
+[32m+[m[32m    r = np.asarray(r, dtype=float)[m
+[32m+[m[32m    if r.shape != theta.shape:[m
+[32m+[m[32m        r = np.broadcast_to(r, theta.shape).copy()[m
+[32m+[m[32m    if np.any(r <= 0):[m
+[32m+[m[32m        raise ValueError("r(θ) precisa ser > 0 em todo o intervalo")[m
+[32m+[m[32m    return r[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef curva_de_formula_polar([m
+[32m+[m[32m    formula: str,[m
+[32m+[m[32m    n_pontos: int = 400,[m
+[32m+[m[32m) -> PoligonoLivre:[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Gera um PoligonoLivre a partir de r(θ).[m
+[32m+[m[32m    θ percorre [0, 2π).[m
+[32m+[m[32m    """[m
+[32m+[m[32m    theta = np.linspace(0, 2 * np.pi, n_pontos, endpoint=False)[m
+[32m+[m[32m    r = _avaliar_r(formula, theta)[m
+[32m+[m[32m    xs = r * np.cos(theta)[m
+[32m+[m[32m    ys = r * np.sin(theta)[m
+[32m+[m[32m    vertices = np.column_stack([xs, ys]).tolist()[m
+[32m+[m[32m    return PoligonoLivre(vertices=vertices)[m
+\ No newline at end of file[m
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/curvas/poligonolivre.py b/SimuladorBilharesSimpleticos/bilhar/curvas/poligonolivre.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..6e981a9[m
+[1m--- /dev/null[m
+[1m+++ b/SimuladorBilharesSimpleticos/bilhar/curvas/poligonolivre.py[m
+[36m@@ -0,0 +1,140 @@[m
+[32m+[m[32m"""[m
+[32m+[m[32mPolígono livre – fronteira definida por vértices arbitrários.[m
+[32m+[m
+[32m+[m[32m- Recebe uma lista de pontos [[x1,y1], [x2,y2], ...][m
+[32m+[m[32m- Fecha sozinho se o primeiro e o último forem diferentes[m
+[32m+[m[32m- Implementa CurvaBase (mesma interface das outras curvas)[m
+[32m+[m
+[32m+[m[32mParâmetros a e b da UI são ignorados (a forma vem dos vértices).[m
+[32m+[m[32m"""[m
+[32m+[m
+[32m+[m[32mfrom __future__ import annotations[m
+[32m+[m[32mimport numpy as np[m
+[32m+[m[32mfrom bilhar.core.curva import CurvaBase[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass PoligonoLivre(CurvaBase):[m
+[32m+[m[32m    def __init__(self, vertices=None, a: float = 1.0, b: float = 1.0):[m
+[32m+[m[32m        # a e b ignorados (compatibilidade com a factory)[m
+[32m+[m[32m        if vertices is None:[m
+[32m+[m[32m            # Quadrado padrão (fallback)[m
+[32m+[m[32m            vertices = [[m
+[32m+[m[32m                [1.0, 1.0],[m
+[32m+[m[32m                [-1.0, 1.0],[m
+[32m+[m[32m                [-1.0, -1.0],[m
+[32m+[m[32m                [1.0, -1.0],[m
+[32m+[m[32m            ][m
+[32m+[m
+[32m+[m[32m        verts = [np.asarray(v, dtype=float) for v in vertices][m
+[32m+[m[32m        if len(verts) < 3:[m
+[32m+[m[32m            raise ValueError("PoligonoLivre precisa de pelo menos 3 vértices")[m
+[32m+[m
+[32m+[m[32m        # Fecha se necessário[m
+[32m+[m[32m        if not np.allclose(verts[0], verts[-1]):[m
+[32m+[m[32m            verts.append(verts[0].copy())[m
+[32m+[m
+[32m+[m[32m        self.vertices = np.array(verts)          # inclui o fechamento[m
+[32m+[m[32m        self.n_lados = len(self.vertices) - 1    # último = primeiro[m
+[32m+[m
+[32m+[m[32m        # Comprimentos dos lados[m
+[32m+[m[32m        self.lens = np.array([[m
+[32m+[m[32m            np.linalg.norm(self.vertices[i + 1] - self.vertices[i])[m
+[32m+[m[32m            for i in range(self.n_lados)[m
+[32m+[m[32m        ])[m
+[32m+[m[32m        self.perimetro = float(np.sum(self.lens))[m
+[32m+[m[32m        if self.perimetro < 1e-12:[m
+[32m+[m[32m            raise ValueError("Perímetro do polígono é zero")[m
+[32m+[m
+[32m+[m[32m    def _s_from_t(self, t: float) -> float:[m
+[32m+[m[32m        t = t % (2 * np.pi)[m
+[32m+[m[32m        return (t / (2 * np.pi)) * self.perimetro[m
+[32m+[m
+[32m+[m[32m    def _t_from_s(self, s: float) -> float:[m
+[32m+[m[32m        s = s % self.perimetro[m
+[32m+[m[32m        return (s / self.perimetro) * 2 * np.pi[m
+[32m+[m
+[32m+[m[32m    def _segmento(self, s: float) -> tuple[int, float]:[m
+[32m+[m[32m        """Retorna (índice do lado, distância local ao longo do lado)."""[m
+[32m+[m[32m        s = s % self.perimetro[m
+[32m+[m[32m        acum = 0.0[m
+[32m+[m[32m        for i in range(self.n_lados):[m
+[32m+[m[32m            if acum + self.lens[i] >= s - 1e-12:[m
+[32m+[m[32m                return i, s - acum[m
+[32m+[m[32m            acum += self.lens[i][m
+[32m+[m[32m        return self.n_lados - 1, self.lens[-1][m
+[32m+[m
+[32m+[m[32m    def ponto(self, t: float) -> np.ndarray:[m
+[32m+[m[32m        s = self._s_from_t(t)[m
+[32m+[m[32m        i, local = self._segmento(s)[m
+[32m+[m[32m        v0 = self.vertices[i][m
+[32m+[m[32m        v1 = self.vertices[i + 1][m
+[32m+[m[32m        if self.lens[i] < 1e-12:[m
+[32m+[m[32m            return v0.copy()[m
+[32m+[m[32m        return v0 + (local / self.lens[i]) * (v1 - v0)[m
+[32m+[m
+[32m+[m[32m    def tangente(self, t: float) -> np.ndarray:[m
+[32m+[m[32m        s = self._s_from_t(t)[m
+[32m+[m[32m        i, _ = self._segmento(s)[m
+[32m+[m[32m        d = self.vertices[i + 1] - self.vertices[i][m
+[32m+[m[32m        norma = np.linalg.norm(d)[m
+[32m+[m[32m        if norma < 1e-12:[m
+[32m+[m[32m            return np.array([1.0, 0.0])[m
+[32m+[m[32m        return d / norma[m
+[32m+[m
+[32m+[m[32m    def normal(self, t: float) -> np.ndarray:[m
+[32m+[m[32m        """Normal apontando para dentro."""[m
+[32m+[m[32m        tg = self.tangente(t)[m
+[32m+[m[32m        n = np.array([tg[1], -tg[0]])  # rotação -90°[m
+[32m+[m[32m        p = self.ponto(t)[m
+[32m+[m[32m        # centro aproximado[m
+[32m+[m[32m        centro = np.mean(self.vertices[:-1], axis=0)[m
+[32m+[m[32m        if np.dot(n, p - centro) > 0:[m
+[32m+[m[32m            n = -n[m
+[32m+[m[32m        return n[m
+[32m+[m
+[32m+[m[32m    def intersect_line(self, point: np.ndarray, direction: np.ndarray) -> list[float]:[m
+[32m+[m[32m        px, py = float(point[0]), float(point[1])[m
+[32m+[m[32m        dx, dy = float(direction[0]), float(direction[1])[m
+[32m+[m[32m        hits = [][m
+[32m+[m
+[32m+[m[32m        for i in range(self.n_lados):[m
+[32m+[m[32m            v0 = self.vertices[i][m
+[32m+[m[32m            v1 = self.vertices[i + 1][m
+[32m+[m[32m            sx, sy = v1[0] - v0[0], v1[1] - v0[1][m
+[32m+[m[32m            denom = dx * sy - dy * sx[m
+[32m+[m[32m            if abs(denom) < 1e-14:[m
+[32m+[m[32m                continue[m
+[32m+[m
+[32m+[m[32m            lam = ((v0[0] - px) * sy - (v0[1] - py) * sx) / denom[m
+[32m+[m[32m            mu = ((v0[0] - px) * dy - (v0[1] - py) * dx) / denom[m
+[32m+[m
+[32m+[m[32m            if -1e-8 <= mu <= 1.0 + 1e-8:[m
+[32m+[m[32m                hits.append(lam)[m
+[32m+[m
+[32m+[m[32m        return hits[m
+[32m+[m
+[32m+[m[32m    def t_from_pos(self, pos: np.ndarray) -> float:[m
+[32m+[m[32m        pos = np.asarray(pos, dtype=float)[m
+[32m+[m[32m        melhor_dist = np.inf[m
+[32m+[m[32m        melhor_s = 0.0[m
+[32m+[m
+[32m+[m[32m        for i in range(self.n_lados):[m
+[32m+[m[32m            v0 = self.vertices[i][m
+[32m+[m[32m            v1 = self.vertices[i + 1][m
+[32m+[m[32m            d = v1 - v0[m
+[32m+[m[32m            len2 = np.dot(d, d)[m
+[32m+[m[32m            if len2 < 1e-14:[m
+[32m+[m[32m                continue[m
+[32m+[m[32m            mu = np.clip(np.dot(pos - v0, d) / len2, 0.0, 1.0)[m
+[32m+[m[32m            proj = v0 + mu * d[m
+[32m+[m[32m            dist = np.linalg.norm(pos - proj)[m
+[32m+[m[32m            if dist < melhor_dist:[m
+[32m+[m[32m                melhor_dist = dist[m
+[32m+[m[32m                melhor_s = float(np.sum(self.lens[:i]) + mu * self.lens[i])[m
+[32m+[m
+[32m+[m[32m        return self._t_from_s(melhor_s)[m
+[32m+[m
+[32m+[m[32m    def sample(self, n: int = 10000) -> np.ndarray:[m
+[32m+[m[32m        ts = np.linspace(0, 2 * np.pi, n, endpoint=False)[m
+[32m+[m[32m        pts = np.array([self.ponto(t) for t in ts])[m
+[32m+[m[32m        return pts.T[m
+\ No newline at end of file[m
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/ui/__pycache__/qt_main.cpython-311.pyc b/SimuladorBilharesSimpleticos/bilhar/ui/__pycache__/qt_main.cpython-311.pyc[m
+[1mindex 80ca803..43b162d 100644[m
+Binary files a/SimuladorBilharesSimpleticos/bilhar/ui/__pycache__/qt_main.cpython-311.pyc and b/SimuladorBilharesSimpleticos/bilhar/ui/__pycache__/qt_main.cpython-311.pyc differ
+[1mdiff --git a/SimuladorBilharesSimpleticos/bilhar/ui/qt_main.py b/SimuladorBilharesSimpleticos/bilhar/ui/qt_main.py[m
+[1mindex f75dcba..ba5f1cc 100644[m
+[1m--- a/SimuladorBilharesSimpleticos/bilhar/ui/qt_main.py[m
+[1m+++ b/SimuladorBilharesSimpleticos/bilhar/ui/qt_main.py[m
+[36m@@ -1,6 +1,7 @@[m
+ """[m
+[31m-Janela principal em PySide6 (Fase 3).[m
+[31m-Animação dirigida por QTimer (mais estável que FuncAnimation dentro do Qt).[m
+[32m+[m[32mJanela principal PySide6[m
+[32m+[m[32m- Desenho poligonal / mão livre[m
+[32m+[m[32m- Fronteira por fórmula polar r(θ)[m
+ """[m
+ [m
+ from __future__ import annotations[m
+[36m@@ -9,7 +10,8 @@[m [mimport numpy as np[m
+ [m
+ from PySide6.QtWidgets import ([m
+     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,[m
+[31m-    QPushButton, QComboBox, QDoubleSpinBox, QGroupBox, QFormLayout[m
+[32m+[m[32m    QPushButton, QComboBox, QDoubleSpinBox, QGroupBox, QFormLayout,[m
+[32m+[m[32m    QLabel, QLineEdit[m
+ )[m
+ from PySide6.QtCore import QTimer[m
+ [m
+[36m@@ -23,6 +25,8 @@[m [mfrom bilhar.viz.canvas import CanvasConfiguracao[m
+ from bilhar.viz.fase import CanvasFase[m
+ from bilhar.core.integrador import Integrador[m
+ from bilhar.curvas import listar_curvas[m
+[32m+[m[32mfrom bilhar.curvas.poligonolivre import PoligonoLivre[m
+[32m+[m[32mfrom bilhar.curvas.parametrica import curva_de_formula_polar[m
+ [m
+ [m
+ class MainWindow(QMainWindow):[m
+[36m@@ -31,15 +35,15 @@[m [mclass MainWindow(QMainWindow):[m
+         self.setWindowTitle("Simulador de Bilhares Simpléticos – Fase 3 (PySide6)")[m
+         self.resize(1400, 900)[m
+ [m
+[31m-        # ---------- Estado e física ----------[m
+[31m-        self.estado = EstadoSimulacao([m
+[31m-            curva_nome="Círculo",[m
+[31m-            a=1.0, b=1.0,[m
+[31m-            modo="Elástico",[m
+[31m-        )[m
+[32m+[m[32m        self.estado = EstadoSimulacao(curva_nome="Círculo", a=1.0, b=1.0, modo="Elástico")[m
+         self.integrador = Integrador(self.estado)[m
+ [m
+[31m-        # ---------- Figura Matplotlib ----------[m
+[32m+[m[32m        self.modo_desenho = None[m
+[32m+[m[32m        self.vertices_desenho = [][m
+[32m+[m[32m        self.arrastando = False[m
+[32m+[m[32m        self.plot_vertices = None[m
+[32m+[m[32m        self.plot_arestas = None[m
+[32m+[m
+         self.fig = Figure(figsize=(12, 8), facecolor="#f0f0f5")[m
+         gs = gridspec.GridSpec(1, 2, width_ratios=[1.6, 1.0], wspace=0.28)[m
+         self.ax_config = self.fig.add_subplot(gs[0])[m
+[36m@@ -52,12 +56,14 @@[m [mclass MainWindow(QMainWindow):[m
+         self.mpl_canvas = FigureCanvas(self.fig)[m
+         self.toolbar = NavigationToolbar(self.mpl_canvas, self)[m
+ [m
+[31m-        # ---------- Timer de animação (Qt) ----------[m
+[32m+[m[32m        self.mpl_canvas.mpl_connect("button_press_event", self._on_press)[m
+[32m+[m[32m        self.mpl_canvas.mpl_connect("motion_notify_event", self._on_motion)[m
+[32m+[m[32m        self.mpl_canvas.mpl_connect("button_release_event", self._on_release)[m
+[32m+[m
+         self.timer = QTimer(self)[m
+[31m-        self.timer.setInterval(16)  # ~60 FPS[m
+[32m+[m[32m        self.timer.setInterval(16)[m
+         self.timer.timeout.connect(self._tick)[m
+ [m
+[31m-        # ---------- Layout Qt ----------[m
+         central = QWidget()[m
+         self.setCentralWidget(central)[m
+         main_layout = QHBoxLayout(central)[m
+[36m@@ -72,34 +78,27 @@[m [mclass MainWindow(QMainWindow):[m
+         right.addWidget(self._criar_grupo_modo())[m
+         right.addWidget(self._criar_grupo_parametros())[m
+         right.addWidget(self._criar_grupo_condicao_inicial())[m
+[32m+[m[32m        right.addWidget(self._criar_grupo_desenho())[m
+[32m+[m[32m        right.addWidget(self._criar_grupo_formula())[m
+         right.addWidget(self._criar_grupo_botoes())[m
+         right.addStretch()[m
+         main_layout.addLayout(right, stretch=1)[m
+ [m
+[31m-        # Desenho inicial[m
+         self.canvas_config.atualizar_estado_inicial(self.estado)[m
+         self.canvas_fase.atualizar(self.estado)[m
+[31m-        self.canvas_config.texto_info.set_text("Pronto para iniciar (PySide6 + QTimer)")[m
+[32m+[m[32m        self.canvas_config.texto_info.set_text("Pronto para iniciar")[m
+         self.mpl_canvas.draw()[m
+ [m
+[31m-    # ------------------------------------------------------------------[m
+[31m-    # Loop de animação[m
+[31m-    # ------------------------------------------------------------------[m
+     def _tick(self):[m
+[31m-        """Chamado pelo QTimer a cada frame."""[m
+[31m-        if self.estado.pausado:[m
+[32m+[m[32m        if self.estado.pausado or self.modo_desenho:[m
+             return[m
+[31m-[m
+         dt = 0.012 * self.estado.velocidade_simulacao[m
+         self.integrador.passo(dt)[m
+[31m-[m
+         self.canvas_config.atualizar_frame(self.estado)[m
+         self.canvas_fase.atualizar(self.estado)[m
+         self.mpl_canvas.draw_idle()[m
+ [m
+[31m-    # ------------------------------------------------------------------[m
+[31m-    # Grupos de controles[m
+[31m-    # ------------------------------------------------------------------[m
+[32m+[m[32m    # ---------- grupos ----------[m
+     def _criar_grupo_curva(self) -> QGroupBox:[m
+         box = QGroupBox("Fronteira")[m
+         layout = QVBoxLayout(box)[m
+[36m@@ -121,19 +120,16 @@[m [mclass MainWindow(QMainWindow):[m
+     def _criar_grupo_parametros(self) -> QGroupBox:[m
+         box = QGroupBox("Parâmetros")[m
+         layout = QFormLayout(box)[m
+[31m-[m
+         self.spin_a = QDoubleSpinBox()[m
+         self.spin_a.setRange(0.1, 20.0)[m
+         self.spin_a.setValue(1.0)[m
+         self.spin_a.setSingleStep(0.1)[m
+         self.spin_a.valueChanged.connect(self._on_parametros)[m
+[31m-[m
+         self.spin_b = QDoubleSpinBox()[m
+         self.spin_b.setRange(0.1, 20.0)[m
+         self.spin_b.setValue(1.0)[m
+         self.spin_b.setSingleStep(0.1)[m
+         self.spin_b.valueChanged.connect(self._on_parametros)[m
+[31m-[m
+         layout.addRow("a", self.spin_a)[m
+         layout.addRow("b", self.spin_b)[m
+         return box[m
+[36m@@ -141,7 +137,6 @@[m [mclass MainWindow(QMainWindow):[m
+     def _criar_grupo_condicao_inicial(self) -> QGroupBox:[m
+         box = QGroupBox("Condição Inicial")[m
+         layout = QFormLayout(box)[m
+[31m-[m
+         self.spin_t = QDoubleSpinBox()[m
+         self.spin_t.setRange(0.0, 2.0)[m
+         self.spin_t.setValue(0.0)[m
+[36m@@ -165,35 +160,258 @@[m [mclass MainWindow(QMainWindow):[m
+         self.spin_vel.setDecimals(2)[m
+         self.spin_vel.valueChanged.connect(self._on_vel)[m
+         layout.addRow("Velocidade", self.spin_vel)[m
+[32m+[m[32m        return box[m
+[32m+[m
+[32m+[m[32m    def _criar_grupo_desenho(self) -> QGroupBox:[m
+[32m+[m[32m        box = QGroupBox("Desenho de fronteira")[m
+[32m+[m[32m        layout = QVBoxLayout(box)[m
+[32m+[m[32m        self.btn_poligonal = QPushButton("Desenhar polígono")[m
+[32m+[m[32m        self.btn_poligonal.clicked.connect(self._on_iniciar_poligonal)[m
+[32m+[m[32m        layout.addWidget(self.btn_poligonal)[m
+[32m+[m[32m        self.btn_mao = QPushButton("Desenhar à mão")[m
+[32m+[m[32m        self.btn_mao.clicked.connect(self._on_iniciar_mao_livre)[m
+[32m+[m[32m        layout.addWidget(self.btn_mao)[m
+[32m+[m[32m        self.btn_fechar = QPushButton("Fechar forma")[m
+[32m+[m[32m        self.btn_fechar.clicked.connect(self._on_fechar)[m
+[32m+[m[32m        self.btn_fechar.setEnabled(False)[m
+[32m+[m[32m        layout.addWidget(self.btn_fechar)[m
+[32m+[m[32m        self.btn_limpar = QPushButton("Limpar desenho")[m
+[32m+[m[32m        self.btn_limpar.clicked.connect(self._on_limpar_desenho)[m
+[32m+[m[32m        layout.addWidget(self.btn_limpar)[m
+[32m+[m[32m        self.lbl_desenho = QLabel("Pontos: 0")[m
+[32m+[m[32m        layout.addWidget(self.lbl_desenho)[m
+[32m+[m[32m        return box[m
+ [m
+[32m+[m[32m    def _criar_grupo_formula(self) -> QGroupBox:[m
+[32m+[m[32m        box = QGroupBox("Fórmula polar r(θ)")[m
+[32m+[m[32m        layout = QVBoxLayout(box)[m
+[32m+[m[32m        self.edit_formula = QLineEdit("1 + 0.3*cos(3*theta)")[m
+[32m+[m[32m        self.edit_formula.setPlaceholderText("ex: 1 + 0.3*cos(3*theta)")[m
+[32m+[m[32m        layout.addWidget(self.edit_formula)[m
+[32m+[m[32m        self.btn_gerar = QPushButton("Gerar curva")[m
+[32m+[m[32m        self.btn_gerar.clicked.connect(self._on_gerar_formula)[m
+[32m+[m[32m        layout.addWidget(self.btn_gerar)[m
+[32m+[m[32m        hint = QLabel("Use: theta, sin, cos, tan, pi, sqrt...")[m
+[32m+[m[32m        hint.setStyleSheet("color: #888; font-size: 11px;")[m
+[32m+[m[32m        layout.addWidget(hint)[m
+         return box[m
+ [m
+     def _criar_grupo_botoes(self) -> QGroupBox:[m
+         box = QGroupBox("Simulação")[m
+         layout = QVBoxLayout(box)[m
+[31m-[m
+         self.btn_start = QPushButton("Iniciar")[m
+         self.btn_start.clicked.connect(self._on_start_pause)[m
+         layout.addWidget(self.btn_start)[m
+[31m-[m
+         self.btn_step = QPushButton("Passo a passo")[m
+         self.btn_step.clicked.connect(self._on_step)[m
+         layout.addWidget(self.btn_step)[m
+[31m-[m
+         self.btn_reset = QPushButton("Reset")[m
+         self.btn_reset.clicked.connect(self._on_reset)[m
+         layout.addWidget(self.btn_reset)[m
+[31m-[m
+         return box[m
+ [m
+[31m-    # ------------------------------------------------------------------[m
+[31m-    # Callbacks[m
+[31m-    # ------------------------------------------------------------------[m
+[32m+[m[32m    # ---------- fórmula ----------[m
+[32m+[m[32m    def _on_gerar_formula(self):[m
+[32m+[m[32m        formula = self.edit_formula.text().strip()[m
+[32m+[m[32m        if not formula:[m
+[32m+[m[32m            self.canvas_config.texto_info.set_text("Digite uma fórmula r(θ).")[m
+[32m+[m[32m            self.mpl_canvas.draw_idle()[m
+[32m+[m[32m            return[m
+[32m+[m[32m        try:[m
+[32m+[m[32m            curva = curva_de_formula_polar(formula, n_pontos=400)[m
+[32m+[m[32m        except Exception as e:[m
+[32m+[m[32m            self.canvas_config.texto_info.set_text(f"Erro na fórmula: {e}")[m
+[32m+[m[32m            self.mpl_canvas.draw_idle()[m
+[32m+[m[32m            return[m
+[32m+[m
+[32m+[m[32m        self._aplicar_curva_livre(curva, f"Fórmula aplicada: {formula}")[m
+[32m+[m
+[32m+[m[32m    def _aplicar_curva_livre(self, curva: PoligonoLivre, msg: str):[m
+[32m+[m[32m        self.timer.stop()[m
+[32m+[m[32m        self.estado.pausado = True[m
+[32m+[m[32m        self.btn_start.setText("Iniciar")[m
+[32m+[m
+[32m+[m[32m        self.estado.curva = curva[m
+[32m+[m[32m        self.estado.curva_nome = "Polígono Livre"[m
+[32m+[m[32m        self.estado.primeiro_inicio = True[m
+[32m+[m[32m        self.estado.lista_t_colisao.clear()[m
+[32m+[m[32m        self.estado.lista_angulo_colisao.clear()[m
+[32m+[m
+[32m+[m[32m        perim = curva.perimetro[m
+[32m+[m[32m        t0 = (curva.lens[0] * 0.5 / perim) * 2 * np.pi[m
+[32m+[m[32m        self.estado.t = t0[m
+[32m+[m[32m        self.estado.pos = curva.ponto(t0)[m
+[32m+[m[32m        self.estado._recalcular_velocidade()[m
+[32m+[m[32m        self.estado.traj_x = [float(self.estado.pos[0])][m
+[32m+[m[32m        self.estado.traj_y = [float(self.estado.pos[1])][m
+[32m+[m
+[32m+[m[32m        self.modo_desenho = None[m
+[32m+[m[32m        self.arrastando = False[m
+[32m+[m[32m        self.vertices_desenho = [][m
+[32m+[m[32m        self.btn_fechar.setEnabled(False)[m
+[32m+[m[32m        self.btn_poligonal.setText("Desenhar polígono")[m
+[32m+[m[32m        self.btn_mao.setText("Desenhar à mão")[m
+[32m+[m[32m        self.combo_curva.setCurrentText("Polígono Livre")[m
+[32m+[m
+[32m+[m[32m        self.canvas_fase.reset_heatmap(self.estado)[m
+[32m+[m[32m        self.canvas_config.atualizar_estado_inicial(self.estado)[m
+[32m+[m[32m        self.canvas_fase.atualizar(self.estado)[m
+[32m+[m[32m        self.canvas_config.texto_info.set_text(msg)[m
+[32m+[m[32m        self._atualizar_preview()[m
+[32m+[m[32m        self.mpl_canvas.draw()[m
+[32m+[m
+[32m+[m[32m    # ---------- desenho ----------[m
+[32m+[m[32m    def _entrar_modo_desenho(self, tipo: str, msg: str):[m
+[32m+[m[32m        self.timer.stop()[m
+[32m+[m[32m        self.estado.pausado = True[m
+[32m+[m[32m        self.btn_start.setText("Iniciar")[m
+[32m+[m[32m        self.modo_desenho = tipo[m
+[32m+[m[32m        self.vertices_desenho = [][m
+[32m+[m[32m        self.arrastando = False[m
+[32m+[m[32m        self.btn_fechar.setEnabled(True)[m
+[32m+[m[32m        self.lbl_desenho.setText("Pontos: 0")[m
+[32m+[m[32m        self.canvas_config.texto_info.set_text(msg)[m
+[32m+[m[32m        self._atualizar_preview()[m
+[32m+[m[32m        self.mpl_canvas.draw()[m
+[32m+[m
+[32m+[m[32m    def _on_iniciar_poligonal(self):[m
+[32m+[m[32m        self._entrar_modo_desenho([m
+[32m+[m[32m            "poligonal",[m
+[32m+[m[32m            "Poligonal: clique para adicionar vértices. Mínimo 3. Depois Fechar."[m
+[32m+[m[32m        )[m
+[32m+[m[32m        self.btn_poligonal.setText("Desenhando polígono...")[m
+[32m+[m[32m        self.btn_mao.setText("Desenhar à mão")[m
+[32m+[m
+[32m+[m[32m    def _on_iniciar_mao_livre(self):[m
+[32m+[m[32m        self._entrar_modo_desenho([m
+[32m+[m[32m            "mao_livre",[m
+[32m+[m[32m            "Mão livre: clique e arraste. Solte e clique Fechar."[m
+[32m+[m[32m        )[m
+[32m+[m[32m        self.btn_mao.setText("Desenhando à mão...")[m
+[32m+[m[32m        self.btn_poligonal.setText("Desenhar polígono")[m
+[32m+[m
+[32m+[m[32m    def _on_press(self, event):[m
+[32m+[m[32m        if not self.modo_desenho:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        if event.inaxes != self.ax_config or event.button != 1:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        if event.xdata is None or event.ydata is None:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        pt = [float(event.xdata), float(event.ydata)][m
+[32m+[m[32m        if self.modo_desenho == "poligonal":[m
+[32m+[m[32m            self.vertices_desenho.append(pt)[m
+[32m+[m[32m            self.lbl_desenho.setText(f"Pontos: {len(self.vertices_desenho)}")[m
+[32m+[m[32m            self._atualizar_preview()[m
+[32m+[m[32m            self.mpl_canvas.draw_idle()[m
+[32m+[m[32m        elif self.modo_desenho == "mao_livre":[m
+[32m+[m[32m            self.arrastando = True[m
+[32m+[m[32m            self.vertices_desenho = [pt][m
+[32m+[m[32m            self.lbl_desenho.setText("Pontos: 1")[m
+[32m+[m[32m            self._atualizar_preview()[m
+[32m+[m[32m            self.mpl_canvas.draw_idle()[m
+[32m+[m
+[32m+[m[32m    def _on_motion(self, event):[m
+[32m+[m[32m        if self.modo_desenho != "mao_livre" or not self.arrastando:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        if event.inaxes != self.ax_config:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        if event.xdata is None or event.ydata is None:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        pt = [float(event.xdata), float(event.ydata)][m
+[32m+[m[32m        if self.vertices_desenho:[m
+[32m+[m[32m            last = self.vertices_desenho[-1][m
+[32m+[m[32m            if (pt[0] - last[0]) ** 2 + (pt[1] - last[1]) ** 2 < 1e-4:[m
+[32m+[m[32m                return[m
+[32m+[m[32m        self.vertices_desenho.append(pt)[m
+[32m+[m[32m        self.lbl_desenho.setText(f"Pontos: {len(self.vertices_desenho)}")[m
+[32m+[m[32m        self._atualizar_preview()[m
+[32m+[m[32m        self.mpl_canvas.draw_idle()[m
+[32m+[m
+[32m+[m[32m    def _on_release(self, event):[m
+[32m+[m[32m        if self.modo_desenho == "mao_livre":[m
+[32m+[m[32m            self.arrastando = False[m
+[32m+[m
+[32m+[m[32m    def _atualizar_preview(self):[m
+[32m+[m[32m        if self.plot_vertices is not None:[m
+[32m+[m[32m            try:[m
+[32m+[m[32m                self.plot_vertices.remove()[m
+[32m+[m[32m            except Exception:[m
+[32m+[m[32m                pass[m
+[32m+[m[32m            self.plot_vertices = None[m
+[32m+[m[32m        if self.plot_arestas is not None:[m
+[32m+[m[32m            try:[m
+[32m+[m[32m                self.plot_arestas.remove()[m
+[32m+[m[32m            except Exception:[m
+[32m+[m[32m                pass[m
+[32m+[m[32m            self.plot_arestas = None[m
+[32m+[m[32m        if not self.vertices_desenho:[m
+[32m+[m[32m            return[m
+[32m+[m[32m        xs = [v[0] for v in self.vertices_desenho][m
+[32m+[m[32m        ys = [v[1] for v in self.vertices_desenho][m
+[32m+[m[32m        estilo = "o" if self.modo_desenho == "poligonal" else "."[m
+[32m+[m[32m        tam = 7 if self.modo_desenho == "poligonal" else 3[m
+[32m+[m[32m        self.plot_vertices, = self.ax_config.plot([m
+[32m+[m[32m            xs, ys, estilo, color="#2980b9", markersize=tam, zorder=20[m
+[32m+[m[32m        )[m
+[32m+[m[32m        if len(self.vertices_desenho) >= 2:[m
+[32m+[m[32m            self.plot_arestas, = self.ax_config.plot([m
+[32m+[m[32m                xs, ys, "-", color="#3498db", linewidth=1.6, alpha=0.9, zorder=19[m
+[32m+[m[32m            )[m
+[32m+[m
+[32m+[m[32m    def _simplificar(self, pontos, eps=0.02):[m
+[32m+[m[32m        if len(pontos) < 3:[m
+[32m+[m[32m            return pontos[m
+[32m+[m[32m        pts = np.asarray(pontos, dtype=float)[m
+[32m+[m
+[32m+[m[32m        def _rdp(pts, eps):[m
+[32m+[m[32m            if len(pts) < 3:[m
+[32m+[m[32m                return pts[m
+[32m+[m[32m            inicio, fim = pts[0], pts[-1][m
+[32m+[m[32m            d = fim - inicio[m
+[32m+[m[32m            leng = np.linalg.norm(d)[m
+[32m+[m[32m            if leng < 1e-12:[m
+[32m+[m[32m                dists = np.linalg.norm(pts - inicio, axis=1)[m
+[32m+[m[32m            else:[m
+[32m+[m[32m                u = d / leng[m
+[32m+[m[32m                proj = np.dot(pts - inicio, u)[m
+[32m+[m[32m                closest = inicio + np.outer(proj, u)[m
+[32m+[m[32m                dists = np.linalg.norm(pts - closest, axis=1)[m
+[32m+[m[32m            i = int(np.argmax(dists))[m
+[32m+[m[32m            if dists[i] > eps:[m
+[32m+[m[32m                left = _rdp(pts[: i + 1], eps)[m
+[32m+[m[32m                right = _rdp(pts[i:], eps)[m
+[32m+[m[32m                return np.vstack([left[:-1], right])[m
+[32m+[m[32m            return np.vstack([inicio, fim])[m
+[32m+[m
+[32m+[m[32m        return _rdp(pts, eps).tolist()[m
+[32m+[m
+[32m+[m[32m    def _on_fechar(self):[m
+[32m+[m[32m        pts = self.vertices_desenho[m
+[32m+[m[32m        if self.modo_desenho == "mao_livre" and len(pts) > 40:[m
+[32m+[m[32m            pts = self._simplificar(pts, eps=0.025)[m
+[32m+[m[32m        if len(pts) < 3:[m
+[32m+[m[32m            self.canvas_config.texto_info.set_text("Precisa de pelo menos 3 pontos.")[m
+[32m+[m[32m            self.mpl_canvas.draw_idle()[m
+[32m+[m[32m            return[m
+[32m+[m[32m        curva = PoligonoLivre(vertices=pts)[m
+[32m+[m[32m        self._aplicar_curva_livre(curva, f"Forma fechada com {curva.n_lados} lados.")[m
+[32m+[m
+[32m+[m[32m    def _on_limpar_desenho(self):[m
+[32m+[m[32m        self.vertices_desenho = [][m
+[32m+[m[32m        self.modo_desenho = None[m
+[32m+[m[32m        self.arrastando = False[m
+[32m+[m[32m        self.btn_fechar.setEnabled(False)[m
+[32m+[m[32m        self.btn_poligonal.setText("Desenhar polígono")[m
+[32m+[m[32m        self.btn_mao.setText("Desenhar à mão")[m
+[32m+[m[32m        self.lbl_desenho.setText("Pontos: 0")[m
+[32m+[m[32m        self._atualizar_preview()[m
+[32m+[m[32m        self.canvas_config.texto_info.set_text("Desenho limpo.")[m
+[32m+[m[32m        self.mpl_canvas.draw_idle()[m
+[32m+[m
+[32m+[m[32m    # ---------- callbacks gerais ----------[m
+     def _on_curva(self, nome: str):[m
+[31m-        if self.estado.primeiro_inicio:[m
+[31m-            a = self.spin_a.value()[m
+[31m-            b = self.spin_b.value()[m
+[31m-            self.estado.atualizar_curva(nome, a=a, b=b)[m
+[32m+[m[32m        if self.estado.primeiro_inicio and not self.modo_desenho:[m
+[32m+[m[32m            self.estado.atualizar_curva(nome, a=self.spin_a.value(), b=self.spin_b.value())[m
+             self.canvas_config.atualizar_estado_inicial(self.estado)[m
+             self.mpl_canvas.draw()[m
+ [m
+[36m@@ -206,10 +424,10 @@[m [mclass MainWindow(QMainWindow):[m
+             self.mpl_canvas.draw()[m
+ [m
+     def _on_parametros(self):[m
+[31m-        if self.estado.primeiro_inicio:[m
+[31m-            a = self.spin_a.value()[m
+[31m-            b = self.spin_b.value()[m
+[31m-            self.estado.atualizar_curva(self.estado.curva_nome, a=a, b=b)[m
+[32m+[m[32m        if self.estado.primeiro_inicio and not self.modo_desenho:[m
+[32m+[m[32m            self.estado.atualizar_curva([m
+[32m+[m[32m                self.estado.curva_nome, a=self.spin_a.value(), b=self.spin_b.value()[m
+[32m+[m[32m            )[m
+             self.canvas_config.atualizar_estado_inicial(self.estado)[m
+             self.mpl_canvas.draw()[m
+ [m
+[36m@@ -230,6 +448,10 @@[m [mclass MainWindow(QMainWindow):[m
+             self.estado.set_velocidade_simulacao(val)[m
+ [m
+     def _on_start_pause(self):[m
+[32m+[m[32m        if self.modo_desenho:[m
+[32m+[m[32m            self.canvas_config.texto_info.set_text("Feche a forma antes de iniciar.")[m
+[32m+[m[32m            self.mpl_canvas.draw_idle()[m
+[32m+[m[32m            return[m
+         if self.estado.pausado:[m
+             self.estado.pausado = False[m
+             self.estado.primeiro_inicio = False[m
+[36m@@ -244,19 +466,18 @@[m [mclass MainWindow(QMainWindow):[m
+         self.mpl_canvas.draw()[m
+ [m
+     def _on_step(self):[m
+[32m+[m[32m        if self.modo_desenho:[m
+[32m+[m[32m            return[m
+         self.timer.stop()[m
+         self.estado.pausado = False[m
+         self.estado.primeiro_inicio = False[m
+[31m-[m
+         n_antes = len(self.estado.lista_t_colisao)[m
+         for _ in range(500):[m
+             self.integrador.passo(0.02)[m
+             if len(self.estado.lista_t_colisao) > n_antes:[m
+                 break[m
+[31m-[m
+         self.estado.pausado = True[m
+         self.btn_start.setText("Continuar")[m
+[31m-[m
+         self.canvas_config.atualizar_frame(self.estado)[m
+         self.canvas_fase.atualizar(self.estado)[m
+         self.canvas_config.texto_info.set_text([m
+[36m@@ -266,6 +487,14 @@[m [mclass MainWindow(QMainWindow):[m
+ [m
+     def _on_reset(self):[m
+         self.timer.stop()[m
+[32m+[m[32m        self.modo_desenho = None[m
+[32m+[m[32m        self.arrastando = False[m
+[32m+[m[32m        self.vertices_desenho = [][m
+[32m+[m[32m        self.btn_fechar.setEnabled(False)[m
+[32m+[m[32m        self.btn_poligonal.setText("Desenhar polígono")[m
+[32m+[m[32m        self.btn_mao.setText("Desenhar à mão")[m
+[32m+[m[32m        self.lbl_desenho.setText("Pontos: 0")[m
+[32m+[m[32m        self._atualizar_preview()[m
+         self.estado.reset()[m
+         self.spin_a.setValue(1.0)[m
+         self.spin_b.setValue(1.0)[m
+[36m@@ -278,7 +507,7 @@[m [mclass MainWindow(QMainWindow):[m
+         self.canvas_fase.reset_heatmap(self.estado)[m
+         self.canvas_config.atualizar_estado_inicial(self.estado)[m
+         self.canvas_fase.atualizar(self.estado)[m
+[31m-        self.canvas_config.texto_info.set_text("Pronto para iniciar (PySide6 + QTimer)")[m
+[32m+[m[32m        self.canvas_config.texto_info.set_text("Pronto para iniciar")[m
+         self.mpl_canvas.draw()[m
+ [m
+ [m
