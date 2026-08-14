@@ -117,28 +117,36 @@ class Integrador:
                 cx = a if x > 0 else -a
                 return (x - cx) ** 2 + y * y <= r * r + 1e-4
 
-            if nome == "Polígono":
-                # Teste de ponto em polígono (ray casting) usando os vértices
+            if nome in ("Polígono", "Polígono Livre"):
                 verts = getattr(est.curva, "vertices", None)
                 if verts is None:
                     return True
+                # vertices do PoligonoLivre incluem o ponto de fechamento no final
+                # usamos só os únicos
+                if len(verts) > 1 and np.allclose(verts[0], verts[-1]):
+                    verts = verts[:-1]
                 n = len(verts)
+                if n < 3:
+                    return True
+
                 dentro = False
                 j = n - 1
                 for i in range(n):
-                    xi, yi = verts[i]
-                    xj, yj = verts[j]
-                    if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-15) + xi):
+                    xi, yi = float(verts[i][0]), float(verts[i][1])
+                    xj, yj = float(verts[j][0]), float(verts[j][1])
+                    if ((yi > y) != (yj > y)) and (
+                        x < (xj - xi) * (y - yi) / (yj - yi + 1e-15) + xi
+                    ):
                         dentro = not dentro
                     j = i
-                # margem de tolerância: se estiver muito perto da borda, considera dentro
+
                 if not dentro:
-                    # verifica distância mínima aos lados
+                    # margem: se está muito perto de alguma aresta, considera dentro
                     for i in range(n):
-                        v0 = verts[i]
-                        v1 = verts[(i + 1) % n]
+                        v0 = np.asarray(verts[i], dtype=float)
+                        v1 = np.asarray(verts[(i + 1) % n], dtype=float)
                         d = v1 - v0
-                        len2 = np.dot(d, d)
+                        len2 = float(np.dot(d, d))
                         if len2 < 1e-14:
                             continue
                         mu = np.clip(np.dot(est.pos - v0, d) / len2, 0.0, 1.0)
