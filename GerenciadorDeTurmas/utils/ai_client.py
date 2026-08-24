@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 KEY_FILE = ROOT / "keys" / "gemini_key.txt"
 
 # modelo estavel da API gratuita (pode mudar no futuro)
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 GEMINI_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/"
     f"{GEMINI_MODEL}:generateContent"
