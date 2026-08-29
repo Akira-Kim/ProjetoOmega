@@ -1,4 +1,4 @@
-```markdown
+
 # Simulador de Bilhares Simpléticos
 
 Simulador interativo de bilhares **elásticos** e **simpléticos**, com visualização em tempo real no espaço de configuração e no espaço de fase (mapa de calor das colisões).
@@ -121,5 +121,5 @@ PYTHONPATH=. python bilhar/tests/test_fisica.py
 - A física roda sem abrir janela gráfica.
 - Dá para desenhar uma fronteira na tela e simular nela.
 - Dá para definir uma fronteira por fórmula e simular nela.
-```
+
 
