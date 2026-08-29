@@ -5,7 +5,7 @@ Simulador interativo de bilhares **elásticos** e **simpléticos**, com visualiz
 
 O diferencial do projeto é mostrar o **bilhar simplético acontecendo na tela**, e não apenas resultados estáticos ou gráficos prontos.
 
-Origem: projeto em parceria com a UFSJ; continuação independente.
+Origem: projeto em parceria com a UFSJ; 
 
 ---
 
