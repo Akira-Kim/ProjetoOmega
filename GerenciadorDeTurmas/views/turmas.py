@@ -2,6 +2,8 @@
 views/turmas.py - Turmas, alunos, historico e edicao
 """
 
+from datetime import date
+
 import flet as ft
 
 from models import (
@@ -97,7 +99,7 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
         atualizar_lista_turmas()
         mostrar_painel_turma()
 
-    # ---------- painel da turma (editar nome/materia + lista alunos) ----------
+    # ---------- painel da turma (editar nome/materia/datas + lista alunos) ----------
     def mostrar_painel_turma():
         painel.controls.clear()
         tid = estado["turma_id"]
@@ -124,22 +126,52 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
             text_size=13,
             width=220,
         )
+        tf_inicio = ft.TextField(
+            label="Inicio (AAAA-MM-DD)",
+            value=t.get("data_inicio") or "",
+            text_size=13,
+            width=160,
+        )
+        tf_fim = ft.TextField(
+            label="Fim (AAAA-MM-DD)",
+            value=t.get("data_fim") or "",
+            text_size=13,
+            width=160,
+        )
 
         def on_salvar_turma(e):
             try:
+                di = (tf_inicio.value or "").strip()
+                df = (tf_fim.value or "").strip()
+                if di:
+                    date.fromisoformat(di)
+                if df:
+                    date.fromisoformat(df)
+                if di and df and di > df:
+                    mostrar_msg(
+                        "Data inicio nao pode ser depois da data fim.",
+                        ft.Colors.RED_400,
+                    )
+                    return
+
                 atualizar_turma(
                     tid,
                     nome=(tf_nome_turma.value or "").strip() or t.get("nome"),
                     disciplina=(tf_disc.value or "").strip(),
+                    data_inicio=di or t.get("data_inicio"),
+                    data_fim=df or t.get("data_fim"),
                 )
                 estado["turma_nome"] = tf_nome_turma.value or estado["turma_nome"]
-                mostrar_msg("Turma atualizada.")
+                mostrar_msg(
+                    "Turma atualizada (datas alteradas; aulas existentes nao foram regeneradas)."
+                )
                 atualizar_lista_turmas()
                 mostrar_painel_turma()
+            except ValueError:
+                mostrar_msg("Use datas no formato AAAA-MM-DD.", ft.Colors.RED_400)
             except Exception as ex:
                 mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
 
-        # novo aluno
         tf_nome_aluno = ft.TextField(label="Nome do aluno", width=200, text_size=13)
         tf_obs_aluno = ft.TextField(label="Obs. (opcional)", width=160, text_size=13)
 
@@ -161,6 +193,14 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
         )
         painel.controls.append(ft.Text("Editar turma", size=13, weight=ft.FontWeight.W_500))
         painel.controls.append(ft.Row([tf_nome_turma, tf_disc], spacing=8))
+        painel.controls.append(ft.Row([tf_inicio, tf_fim], spacing=8))
+        painel.controls.append(
+            ft.Text(
+                "Alterar o fim so amplia/reduz o limite. Nao apaga nem regenera aulas.",
+                size=11,
+                color=ft.Colors.GREY_500,
+            )
+        )
         painel.controls.append(
             ft.ElevatedButton("Salvar turma", icon=ft.Icons.SAVE, on_click=on_salvar_turma)
         )
@@ -177,7 +217,9 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
             )
         )
         painel.controls.append(ft.Divider(height=1))
-        painel.controls.append(ft.Text("Alunos (clique para abrir a ficha)", size=13, weight=ft.FontWeight.W_500))
+        painel.controls.append(
+            ft.Text("Alunos (clique para abrir a ficha)", size=13, weight=ft.FontWeight.W_500)
+        )
 
         alunos = listar_alunos(tid)
         if not alunos:
@@ -297,7 +339,9 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
                 tf_obs,
                 ft.Row(
                     [
-                        ft.ElevatedButton("Salvar aluno", icon=ft.Icons.SAVE, on_click=on_salvar_aluno),
+                        ft.ElevatedButton(
+                            "Salvar aluno", icon=ft.Icons.SAVE, on_click=on_salvar_aluno
+                        ),
                         ft.OutlinedButton(
                             "Desativar",
                             icon=ft.Icons.PERSON_OFF_OUTLINED,
@@ -345,7 +389,15 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
                     max_lines=3,
                 )
 
-                def fazer_salvar_reg(e, aula_id=h["aula_id"], aluno=aluno_id, n=tf_nota, c=tf_coins, a=tf_analise):
+                def fazer_salvar_reg(
+                    e,
+                    aula_id=h["aula_id"],
+                    aluno=aluno_id,
+                    n=tf_nota,
+                    c=tf_coins,
+                    a=tf_analise,
+                    data_ref=h["data_aula"],
+                ):
                     try:
                         nota_raw = (n.value or "").strip()
                         coins_raw = (c.value or "0").strip()
@@ -361,7 +413,7 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
                             coins=coins,
                             analise=a.value or "",
                         )
-                        mostrar_msg(f"Registro de {h['data_aula']} atualizado.")
+                        mostrar_msg(f"Registro de {data_ref} atualizado.")
                         mostrar_ficha_aluno()
                     except Exception as ex:
                         mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
@@ -413,7 +465,11 @@ def build_turmas_view(page: ft.Page) -> ft.Control:
     return ft.Column(
         [
             ft.Text("Turmas", size=26, weight=ft.FontWeight.BOLD),
-            ft.Text("Editar turma, alunos e historico aula a aula.", size=13, color=ft.Colors.GREY_500),
+            ft.Text(
+                "Editar turma, datas, alunos e historico aula a aula.",
+                size=13,
+                color=ft.Colors.GREY_500,
+            ),
             mensagem,
             ft.Divider(height=1),
             ft.Row(
