@@ -169,6 +169,7 @@ def gerar_aulas_da_turma(turma_id: int, regenerar: bool = True) -> int:
               AND estudada = 0
               AND dada = 0
               AND (conteudo IS NULL OR conteudo = '')
+              AND COALESCE(avulsa, 0) = 0
             """,
             (turma_id,),
         )
@@ -323,6 +324,8 @@ def _proxima_data_valida(depois_de: date, dias_semana: list, bloqueadas: set, da
 
 
 def remarcar_aula(aula_id: int, nova_data_str: str) -> str:
+
+
     """
     Remarca uma aula.
     Se a nova data já tiver aula da mesma turma, empurra essa e todas as
@@ -415,6 +418,70 @@ def remarcar_aula(aula_id: int, nova_data_str: str) -> str:
         f"Aula movida para {nova_data_str}. "
         f"{n} aula(s) seguinte(s) foram empurradas para frente."
     )
+
+def adicionar_aula_avulsa(turma_id: int, data_str: str) -> str:
+    """Adiciona UMA aula extra, em uma data especifica, na turma indicada."""
+    try:
+        d = date.fromisoformat((data_str or "").strip())
+    except ValueError:
+        raise ValueError("Data invalida. Use AAAA-MM-DD (exemplo: 2026-11-25).")
+
+    turma = obter_turma(turma_id)
+    if not turma:
+        raise ValueError("Turma nao encontrada.")
+
+    conn = get_connection()
+    try:
+        existe = conn.execute(
+            "SELECT id FROM aulas WHERE turma_id = ? AND data = ?",
+            (turma_id, d.isoformat()),
+        ).fetchone()
+        if existe:
+            raise ValueError(f"Esta turma ja tem aula em {d.strftime('%d/%m/%Y')}.")
+        conn.execute(
+            "INSERT INTO aulas (turma_id, data, status, avulsa) VALUES (?, ?, 'planejada', 1)",
+            (turma_id, d.isoformat()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    # avisos informativos (a aula e criada mesmo assim)
+    avisos = []
+    if d.weekday() not in parse_dias_semana(turma["dias_semana"]):
+        avisos.append("fora dos dias de aula da turma")
+    if d in _datas_bloqueadas(d, d):
+        avisos.append("cai em feriado/recesso")
+    if d < date.fromisoformat(turma["data_inicio"]) or d > date.fromisoformat(turma["data_fim"]):
+        avisos.append("fora do periodo da turma")
+
+    msg = f"Aula extra criada em {d.strftime('%d/%m/%Y')}."
+    if avisos:
+        msg += " Atencao: " + "; ".join(avisos) + "."
+    return msg
+
+
+def excluir_aula_avulsa(aula_id: int) -> str:
+    """Exclui uma aula extra, desde que ainda esteja vazia."""
+    conn = get_connection()
+    try:
+        aula = conn.execute("SELECT * FROM aulas WHERE id = ?", (aula_id,)).fetchone()
+        if not aula:
+            raise ValueError("Aula nao encontrada.")
+        if not aula["avulsa"]:
+            raise ValueError("So aulas extras podem ser excluidas por aqui.")
+        regs = conn.execute(
+            "SELECT COUNT(*) AS n FROM registros_aula WHERE aula_id = ?", (aula_id,)
+        ).fetchone()["n"]
+        if aula["dada"] or aula["estudada"] or (aula["conteudo"] or "").strip() or regs:
+            raise ValueError(
+                "Esta aula ja tem registros (estudada, dada, conteudo ou notas). Nao foi excluida."
+            )
+        conn.execute("DELETE FROM aulas WHERE id = ?", (aula_id,))
+        conn.commit()
+    finally:
+        conn.close()
+    return "Aula extra excluida."
 
 def listar_aulas_periodo(data_inicio: str, data_fim: str) -> list:
     """Aulas no periodo, com dados da turma."""

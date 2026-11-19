@@ -171,7 +171,10 @@ def criar_tabelas():
         ('ia_api_key', ''),
         ('tema', 'system')
     """, (str(datetime.now().year),))
-
+        # migracao: marca aulas extras adicionadas manualmente
+    colunas_aulas = [r["name"] for r in cursor.execute("PRAGMA table_info(aulas)").fetchall()]
+    if "avulsa" not in colunas_aulas:
+        cursor.execute("ALTER TABLE aulas ADD COLUMN avulsa INTEGER DEFAULT 0")
     conn.commit()
     conn.close()
     print(f"✅ Banco de dados criado/verificado em: {DB_PATH}")

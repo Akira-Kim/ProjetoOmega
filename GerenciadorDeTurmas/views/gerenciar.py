@@ -15,6 +15,8 @@ from models import (
     excluir_evento,
     regenerar_todas_turmas_ativas,
     remarcar_aula,
+    adicionar_aula_avulsa,
+    excluir_aula_avulsa,
 )
 from utils.calendar_helpers import dias_semana_para_texto, parse_dias_semana
 from utils.backup import fazer_backup
@@ -52,7 +54,13 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
         width=160,
         value=(date.today() + timedelta(days=180)).isoformat(),
     )
-
+    tf_nova_aula = ft.TextField(
+        label="Nova aula (AAAA-MM-DD)",
+        width=190,
+        dense=True,
+        text_size=12,
+        value=date.today().isoformat(),
+    )
     # ---------- formulario evento ----------
     tf_ev_titulo = ft.TextField(label="Titulo do evento", width=220)
     tf_ev_data = ft.TextField(
@@ -213,11 +221,7 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                 }.get(status, ft.Colors.GREY_400)
 
                 tf_data = ft.TextField(
-                    value=a["data"],
-                    width=120,
-                    dense=True,
-                    text_size=12,
-                    data=a["id"],
+                    value=a["data"], width=120, dense=True, text_size=12, data=a["id"]
                 )
 
                 def fazer_remarcar(e, campo=tf_data, aula_id=a["id"]):
@@ -230,18 +234,43 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
                     except Exception as ex:
                         mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
 
+                def fazer_excluir(e, aula_id=a["id"]):
+                    try:
+                        mostrar_msg(excluir_aula_avulsa(aula_id), ft.Colors.ORANGE_400)
+                        carregar_aulas_turma(turma_selecionada_id["id"])
+                        atualizar_lista_turmas()
+                    except Exception as ex:
+                        mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
+
+                eh_extra = bool(a.get("avulsa"))
                 painel_aulas.controls.append(
                     ft.Container(
                         content=ft.Row(
                             [
                                 ft.Text(a["data"], width=95, size=12),
-                                ft.Text(status, size=11, color=cor_status, width=70),
+                                ft.Text(
+                                    status + (" • extra" if eh_extra else ""),
+                                    size=11,
+                                    color=cor_status,
+                                    width=90,
+                                ),
                                 tf_data,
                                 ft.IconButton(
                                     icon=ft.Icons.SAVE_OUTLINED,
                                     icon_size=16,
                                     tooltip="Salvar nova data",
                                     on_click=fazer_remarcar,
+                                ),
+                                (
+                                    ft.IconButton(
+                                        icon=ft.Icons.DELETE_OUTLINE,
+                                        icon_size=16,
+                                        icon_color=ft.Colors.RED_300,
+                                        tooltip="Excluir aula extra",
+                                        on_click=fazer_excluir,
+                                    )
+                                    if eh_extra
+                                    else ft.Container(width=0)
                                 ),
                             ],
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -253,8 +282,22 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
             painel_aulas.update()
         except Exception:
             pass
-
+   
     # ---------- handlers ----------
+    def on_adicionar_aula(e):
+        tid = turma_selecionada_id["id"]
+        if not tid:
+            mostrar_msg("Selecione uma turma primeiro (clique no card dela).", ft.Colors.RED_400)
+            return
+        try:
+            msg = adicionar_aula_avulsa(tid, tf_nova_aula.value or "")
+            cor = ft.Colors.AMBER_400 if "Atencao" in msg else ft.Colors.GREEN_400
+            mostrar_msg(msg, cor)
+            carregar_aulas_turma(tid)
+            atualizar_lista_turmas()
+        except Exception as ex:
+            mostrar_msg(f"Erro: {ex}", ft.Colors.RED_400)
+
     def on_selecionar_turma(e):
         turma_id = e.control.data
         turma_selecionada_id["id"] = turma_id
@@ -435,18 +478,30 @@ def build_gerenciar_view(page: ft.Page) -> ft.Control:
     )
 
     coluna_direita = ft.Column(
-        [
-            ft.Text("Aulas da turma selecionada", size=16, weight=ft.FontWeight.W_600),
-            ft.Text(
-                "Altere a data e clique em salvar para remarcar.",
-                size=11,
-                color=ft.Colors.GREY_500,
-            ),
-            painel_aulas,
-        ],
-        expand=True,
-        spacing=8,
-        width=340,
+    [
+        ft.Text("Aulas da turma selecionada", size=16, weight=ft.FontWeight.W_600),
+        ft.Text(
+            "Altere a data e clique em salvar para remarcar.",
+            size=11,
+            color=ft.Colors.GREY_500,
+        ),
+        ft.Row(
+            [
+                tf_nova_aula,
+                ft.ElevatedButton(
+                    "Adicionar aula nesta turma",
+                    icon=ft.Icons.ADD,
+                    on_click=on_adicionar_aula,
+                ),
+            ],
+            spacing=8,
+            wrap=True,
+        ),
+        painel_aulas,
+    ],
+    expand=True,
+    spacing=8,
+    width=340,
     )
 
     # carga inicial
